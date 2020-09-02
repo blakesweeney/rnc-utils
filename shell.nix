@@ -4,8 +4,9 @@ let
   frameworks = pkgs.darwin.apple_sdk.frameworks;
 in
 pkgs.mkShell {
-  buildInputs = [
-    pkgs.cargo
+  buildInputs = with pkgs; [
+    cargo
+    rustfmt
   ];
 
   propagatedBuildInputs = with pkgs; [
