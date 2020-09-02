@@ -35,6 +35,7 @@ enum SequenceCommands {
         output: PathBuf,
     },
 
+    /// Convert a JSON sequence file and turn it into a standard fasta file.
     ToFasta {
         #[structopt(parse(from_os_str))]
         raw: PathBuf,
