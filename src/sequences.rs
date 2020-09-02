@@ -27,11 +27,11 @@ pub enum Selection {
 
 impl From<Sequence> for fasta::Record {
     fn from(entry: Sequence) -> fasta::Record {
-        return fasta::Record::with_attrs(
+        fasta::Record::with_attrs(
             &entry.id,
             entry.description.as_ref().map(String::as_ref),
             &entry.sequence.as_bytes(),
-        );
+        )
     }
 }
 
