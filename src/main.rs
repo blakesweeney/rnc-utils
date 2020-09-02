@@ -34,6 +34,14 @@ enum SequenceCommands {
         #[structopt(parse(from_os_str))]
         output: PathBuf,
     },
+
+    ToFasta {
+        #[structopt(parse(from_os_str))]
+        raw: PathBuf,
+
+        #[structopt(parse(from_os_str))]
+        output: PathBuf,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -77,6 +85,7 @@ fn handle_json_sequence(cmd: SequenceCommands) -> Result<()> {
             raw,
             output,
         } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::NotInIdSet),
+        SequenceCommands::ToFasta { raw, output } => sequences::write_fasta(&raw, &output),
     }
 }
 

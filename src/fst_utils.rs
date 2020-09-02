@@ -10,7 +10,6 @@ use fst::{Set, SetBuilder};
 
 use memmap::Mmap;
 
-
 pub fn load(filename: &Path) -> Result<Set<Mmap>> {
     let mmap = unsafe { Mmap::map(&File::open(filename)?)? };
     return Set::new(mmap).map_err(From::from);
