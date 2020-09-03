@@ -85,33 +85,25 @@ enum Opt {
     },
 }
 
-fn handle_json_sequence(cmd: SequenceCommands) -> Result<()> {
-    match cmd {
-        SequenceCommands::SelectKnown {
-            fst_file,
-            raw,
-            output,
-        } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::InIdSet),
-        SequenceCommands::RejectKnown {
-            fst_file,
-            raw,
-            output,
-        } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::NotInIdSet),
-        SequenceCommands::SelectEasel { raw, output } => sequences::write_easel(&raw, &output),
-        SequenceCommands::ToFasta { raw, output } => sequences::write_fasta(&raw, &output),
-    }
-}
-
-fn handle_fst(cmd: FstCommands) -> Result<()> {
-    match cmd {
-        FstCommands::Build { filename, output } => fst_utils::build(&filename, &output),
-    }
-}
-
 fn main() -> Result<()> {
     let opt = Opt::from_args();
     match opt {
-        Opt::JsonSequence { command } => handle_json_sequence(command),
-        Opt::FstSet { command } => handle_fst(command),
+        Opt::JsonSequence { command } => match command {
+            SequenceCommands::SelectKnown {
+                fst_file,
+                raw,
+                output,
+            } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::InIdSet),
+            SequenceCommands::RejectKnown {
+                fst_file,
+                raw,
+                output,
+            } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::NotInIdSet),
+            SequenceCommands::SelectEasel { raw, output } => sequences::write_easel(&raw, &output),
+            SequenceCommands::ToFasta { raw, output } => sequences::write_fasta(&raw, &output),
+        },
+        Opt::FstSet { command } => match command {
+            FstCommands::Build { filename, output } => fst_utils::build(&filename, &output),
+        },
     }
 }
