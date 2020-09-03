@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+extern crate lazy_static;
 extern crate log;
 
 use anyhow::Result;
@@ -7,12 +8,13 @@ use structopt::StructOpt;
 
 pub mod fst_utils;
 pub mod sequences;
+pub mod utils;
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 enum SequenceCommands {
     /// Filter a psql JSON file of sequences to select only those that are in the given id file.
-    Select {
+    SelectKnown {
         #[structopt(parse(from_os_str))]
         fst_file: PathBuf,
 
@@ -24,10 +26,19 @@ enum SequenceCommands {
     },
 
     /// Filter a psql JSON file of sequences to reject those that are in the given id file.
-    Reject {
+    RejectKnown {
         #[structopt(parse(from_os_str))]
         fst_file: PathBuf,
 
+        #[structopt(parse(from_os_str))]
+        raw: PathBuf,
+
+        #[structopt(parse(from_os_str))]
+        output: PathBuf,
+    },
+
+    /// Filter all sequences to only those that are valid for infernal/easel.
+    SelectEasel {
         #[structopt(parse(from_os_str))]
         raw: PathBuf,
 
@@ -76,16 +87,17 @@ enum Opt {
 
 fn handle_json_sequence(cmd: SequenceCommands) -> Result<()> {
     match cmd {
-        SequenceCommands::Select {
+        SequenceCommands::SelectKnown {
             fst_file,
             raw,
             output,
         } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::InIdSet),
-        SequenceCommands::Reject {
+        SequenceCommands::RejectKnown {
             fst_file,
             raw,
             output,
         } => sequences::write_selected(&fst_file, &raw, &output, &sequences::Selection::NotInIdSet),
+        SequenceCommands::SelectEasel { raw, output } => sequences::write_easel(&raw, &output),
         SequenceCommands::ToFasta { raw, output } => sequences::write_fasta(&raw, &output),
     }
 }

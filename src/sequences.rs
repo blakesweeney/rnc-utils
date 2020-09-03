@@ -1,6 +1,4 @@
-use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufReader;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -11,7 +9,11 @@ use memmap::Mmap;
 
 use bio::io::fasta;
 
+use lazy_static::lazy_static;
+use regex::Regex;
+
 use crate::fst_utils;
+use crate::utils;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Sequence {
@@ -50,28 +52,43 @@ pub fn write_selected(
     output: &Path,
     selection: &Selection,
 ) -> Result<()> {
-    let file = File::open(sequences)?;
-    let file = BufReader::new(file);
+    let input = utils::buf_reader(sequences)?;
     let known = fst_utils::load(ids)?;
-    let writer = File::create(output)?;
-    for line in file.lines() {
+    let mut writer = utils::buf_writer(output)?;
+    for line in input.lines() {
         let line = line?.replace("\\\\", "\\");
         let entry: Sequence = serde_json::from_str(&line)?;
         if selection.selected(&known, &entry.id) {
-            serde_json::to_writer(&writer, &entry)?;
+            serde_json::to_writer(&mut writer, &entry)?;
         }
     }
     Ok(())
 }
 
 pub fn write_fasta(sequences: &Path, output: &Path) -> Result<()> {
-    let file = File::open(sequences)?;
-    let file = BufReader::new(file);
-    let mut writer = fasta::Writer::new(File::create(output)?);
-    for line in file.lines() {
+    let input = utils::buf_reader(sequences)?;
+    let out = utils::buf_writer(output)?;
+    let mut writer = fasta::Writer::new(out);
+    for line in input.lines() {
         let line = line?.replace("\\\\", "\\");
         let entry: Sequence = serde_json::from_str(&line)?;
         writer.write_record(&entry.into())?;
+    }
+    Ok(())
+}
+
+pub fn write_easel(sequences: &Path, output: &Path) -> Result<()> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"^[ACGTN]+$").unwrap();
+    }
+    let input = utils::buf_reader(sequences)?;
+    let mut writer = utils::buf_writer(output)?;
+    for line in input.lines() {
+        let line = line?.replace("\\\\", "\\");
+        let entry: Sequence = serde_json::from_str(&line)?;
+        if RE.is_match(&entry.sequence) {
+            serde_json::to_writer(&mut writer, &entry)?;
+        }
     }
     Ok(())
 }
