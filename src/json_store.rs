@@ -35,7 +35,6 @@ CREATE TABLE IF NOT EXISTS indexed_data (
     UNIQUE (idx, data_type)
 );
 
-CREATE INDEX IF NOT EXISTS ix_data__data_type ON indexed_data(data_type);
 CREATE INDEX IF NOT EXISTS ix_data__index ON indexed_data(idx);
 "#;
 
