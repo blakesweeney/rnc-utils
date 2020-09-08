@@ -75,7 +75,7 @@ enum FstCommands {
 enum JsonStoreCommands {
     /// Index a JSON document.
     Index {
-        #[structopt(short, long, default_value = "10000")]
+        #[structopt(short, long, default_value = "1000000")]
         chunk_size: usize,
 
         /// Type of data being indexed, eg, secondary_structure, hits, etc
