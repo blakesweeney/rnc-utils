@@ -90,7 +90,7 @@ fn setup(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn batch_insert<'a, 'b>(
+fn batch_insert<'a>(
     txn: &mut Transaction<'a>,
     entries: impl Iterator<Item = Result<Entry>>,
 ) -> Result<()> {
@@ -116,6 +116,7 @@ pub fn index(data_type: &String, json_file: &Path, chunk_size: usize, output: &P
         output,
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
     )?;
+
     setup(&conn)?;
     conn.execute(INSERT_METADATA, params![data_type])?;
     for chunk in chunks.into_iter() {
@@ -124,6 +125,21 @@ pub fn index(data_type: &String, json_file: &Path, chunk_size: usize, output: &P
         txn.commit()?;
     }
 
+    Ok(())
+}
+
+pub fn index_files(filename: &Path, chunk_size: usize, output: &Path) -> Result<()> {
+    let file = utils::buf_reader(&filename)?;
+    for line in file.lines() {
+        let path = line?.to_owned();
+        let path = Path::new(&path);
+        let data_type = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .ok_or_else(|| anyhow!("Could not get data_type from file: {:?}", path))
+            .map(|s| s.to_owned())?;
+        index(&data_type, &path, chunk_size, &output)?;
+    }
     Ok(())
 }
 
@@ -163,7 +179,11 @@ pub fn extract_range(path: &Path, min: i64, max: i64, output: &Path) -> Result<(
 
     let expected = (max - min) + 1;
     if seen != expected {
-        return Err(anyhow!("Only found {} of expected {} items", seen, expected));
+        return Err(anyhow!(
+            "Only found {} of expected {} items",
+            seen,
+            expected
+        ));
     }
 
     Ok(())

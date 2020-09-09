@@ -90,6 +90,20 @@ enum JsonStoreCommands {
         output: PathBuf,
     },
 
+    IndexFiles {
+        #[structopt(short, long, default_value = "1000000")]
+        chunk_size: usize,
+
+        #[structopt(parse(from_os_str))]
+        /// Filename of the raw json file, '-' means stdin.
+        filename: PathBuf,
+
+        #[structopt(parse(from_os_str))]
+        /// Filename to store the index in.
+        output: PathBuf,
+        
+    },
+
     /// Extract all data between min, max (inclusive) in a store.
     ExtractRange {
         #[structopt(parse(from_os_str))]
@@ -164,6 +178,11 @@ fn main() -> Result<()> {
                 filename,
                 output,
             } => json_store::index(&data_type, &filename, chunk_size, &output),
+            JsonStoreCommands::IndexFiles {
+                chunk_size,
+                filename,
+                output,
+            } => json_store::index_files(&filename, chunk_size, &output),
             JsonStoreCommands::ExtractRange {
                 filename,
                 min,
