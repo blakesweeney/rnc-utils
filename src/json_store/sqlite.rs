@@ -6,6 +6,7 @@ use itertools::Itertools;
 
 use rusqlite::{params, Connection, OpenFlags, Row, Transaction, NO_PARAMS};
 use serde::{Deserialize, Serialize};
+use serde_query::{DeserializeQuery, Query};
 
 use anyhow::{anyhow, Result};
 
@@ -34,8 +35,6 @@ CREATE TABLE IF NOT EXISTS indexed_data (
     data TEXT NOT NULL,
     UNIQUE (idx, data_type)
 );
-
-CREATE INDEX IF NOT EXISTS ix_data__index ON indexed_data(idx);
 "#;
 
 const INSERT_DATA: &str = r#"
@@ -49,6 +48,12 @@ struct Entry {
     id: i64,
     data_type: String,
     raw_data: String,
+}
+
+#[derive(DeserializeQuery)]
+struct DocId {
+    #[query(".id")]
+    id: i64,
 }
 
 impl Entry {
@@ -102,28 +107,44 @@ fn batch_insert<'a>(
     Ok(())
 }
 
+fn file_insert<'a>(
+    txn: &mut Transaction<'a>,
+    data_type: &String,
+    file: &mut Box<dyn std::io::BufRead>,
+) -> Result<usize> {
+    let mut count: usize = 0;
+    let mut buf = String::new();
+    let mut statement = txn.prepare_cached(INSERT_DATA)?;
+    loop {
+        match file.read_line(&mut buf)? {
+            0 => break,
+            _ => {
+                let cleaned = buf.replace("\\\\", "\\");
+                let data: DocId = serde_json::from_str::<Query<DocId>>(&cleaned)?.into();
+                let id = data.id;
+                statement.execute(params![id, data_type, cleaned])?;
+                count += 1;
+                buf.clear();
+            }
+        }
+    }
+    Ok(count)
+}
+
 pub fn index(data_type: &String, json_file: &Path, chunk_size: usize, output: &Path) -> Result<()> {
-    let file = utils::buf_reader(&json_file)?;
-    let chunks = file
-        .lines()
-        .into_iter()
-        .filter_map(Result::ok)
-        .map(|l| l.replace("\\\\", "\\"))
-        .map(|l| Entry::from_raw(&data_type, l))
-        .chunks(chunk_size);
+    let mut file = utils::buf_reader(&json_file)?;
 
     let mut conn = Connection::open_with_flags(
         output,
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
     )?;
-
     setup(&conn)?;
     conn.execute(INSERT_METADATA, params![data_type])?;
-    for chunk in chunks.into_iter() {
-        let mut txn = conn.transaction()?;
-        batch_insert(&mut txn, chunk.into_iter())?;
-        txn.commit()?;
-    }
+
+    let mut txn = conn.transaction()?;
+    let count = file_insert(&mut txn, data_type, &mut file)?;
+    println!("{}", count);
+    txn.commit()?;
 
     Ok(())
 }

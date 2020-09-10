@@ -75,8 +75,8 @@ enum FstCommands {
 enum JsonStoreCommands {
     /// Index a JSON document.
     Index {
-        #[structopt(short, long, default_value = "1000000")]
-        chunk_size: usize,
+        // #[structopt(short, long, default_value = "1000000")]
+        // chunk_size: usize,
 
         /// Type of data being indexed, eg, secondary_structure, hits, etc
         data_type: String,
@@ -91,8 +91,8 @@ enum JsonStoreCommands {
     },
 
     IndexFiles {
-        #[structopt(short, long, default_value = "1000000")]
-        chunk_size: usize,
+        // #[structopt(short, long, default_value = "1000000")]
+        // chunk_size: usize,
 
         #[structopt(parse(from_os_str))]
         /// Filename of the raw json file, '-' means stdin.
@@ -111,10 +111,10 @@ enum JsonStoreCommands {
         filename: PathBuf,
 
         /// Min index to access.
-        min: i64,
+        min: u64,
 
         /// Max index to access, inclusive.
-        max: i64,
+        max: u64,
 
         #[structopt(parse(from_os_str), default_value = "-")]
         /// Output filename, '-' is stdout.
@@ -173,22 +173,20 @@ fn main() -> Result<()> {
         },
         Opt::JsonStore { command } => match command {
             JsonStoreCommands::Index {
-                chunk_size,
                 data_type,
                 filename,
                 output,
-            } => json_store::index(&data_type, &filename, chunk_size, &output),
+            } => json_store::lmdb::index(&data_type, &filename, &output),
             JsonStoreCommands::IndexFiles {
-                chunk_size,
                 filename,
                 output,
-            } => json_store::index_files(&filename, chunk_size, &output),
+            } => json_store::lmdb::index_files(&filename, &output),
             JsonStoreCommands::ExtractRange {
                 filename,
                 min,
                 max,
                 output,
-            } => json_store::extract_range(&filename, min, max, &output),
+            } => json_store::lmdb::extract_range(&filename, min, max, &output),
         },
     }
 }
