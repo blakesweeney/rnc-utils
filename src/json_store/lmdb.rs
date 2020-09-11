@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::str;
 use std::fs;
 use std::io::prelude::*;
 use std::path::Path;
+use std::str;
 
 use serde::{Deserialize, Serialize};
 use serde_query::{DeserializeQuery, Query};
@@ -127,9 +127,9 @@ pub fn extract_range(path: &Path, min: u64, max: u64, output: &Path) -> Result<(
         let mut data = empty.clone();
         for (_, db) in dbs.iter() {
             let raw = match txn.get(*db, &index.to_be_bytes()) {
-                | Err(lmdb::Error::NotFound) => continue,
-                | Ok(r) => Ok(r),
-                | Err(e) => Err(e),
+                Err(lmdb::Error::NotFound) => continue,
+                Ok(r) => Ok(r),
+                Err(e) => Err(e),
             }?;
 
             let text = str::from_utf8(raw)?;
@@ -184,13 +184,14 @@ pub fn extract_from_file(path: &Path, filename: &Path, output: &Path) -> Result<
                 let key = buf.as_bytes();
                 for (_, db) in dbs.iter() {
                     let raw = match txn.get(*db, &key) {
-                        | Err(lmdb::Error::NotFound) => continue,
-                        | Ok(r) => Ok(r),
-                        | Err(e) => Err(e),
+                        Err(lmdb::Error::NotFound) => continue,
+                        Ok(r) => Ok(r),
+                        Err(e) => Err(e),
                     }?;
 
                     let text = str::from_utf8(raw)?;
-                    let json: HashMap<String, serde_json::value::Value> = serde_json::from_str(&text)?;
+                    let json: HashMap<String, serde_json::value::Value> =
+                        serde_json::from_str(&text)?;
                     data.extend(json);
                 }
 

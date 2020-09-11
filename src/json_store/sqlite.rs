@@ -57,23 +57,6 @@ struct DocId {
 }
 
 impl Entry {
-    pub fn from_raw(data_type: &String, raw: String) -> Result<Self> {
-        let entry: serde_json::Value = serde_json::from_str(&raw)?;
-        let id = match &entry["id"] {
-            serde_json::Value::Number(n) => match n.as_i64() {
-                Some(n) => Ok(n),
-                None => Err(anyhow!("Given id must be a 64 bit int")),
-            },
-            _ => Err(anyhow!("Entry does not have numeric id: {}", entry)),
-        }?;
-
-        Ok(Entry {
-            id,
-            data_type: data_type.clone(),
-            raw_data: raw,
-        })
-    }
-
     pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
         let id_idx = row.column_index("idx")?;
         let data_type_idx = row.column_index("data_type")?;
@@ -92,18 +75,6 @@ impl Entry {
 
 fn setup(conn: &Connection) -> Result<()> {
     conn.execute_batch(SCHEMA)?;
-    Ok(())
-}
-
-fn batch_insert<'a>(
-    txn: &mut Transaction<'a>,
-    entries: impl Iterator<Item = Result<Entry>>,
-) -> Result<()> {
-    let mut statement = txn.prepare_cached(INSERT_DATA)?;
-    for entry in entries {
-        let entry = entry?;
-        statement.execute(params![entry.id, entry.data_type, entry.raw_data])?;
-    }
     Ok(())
 }
 
@@ -131,7 +102,7 @@ fn file_insert<'a>(
     Ok(count)
 }
 
-pub fn index(data_type: &String, json_file: &Path, chunk_size: usize, output: &Path) -> Result<()> {
+pub fn index(data_type: &String, json_file: &Path, output: &Path) -> Result<()> {
     let mut file = utils::buf_reader(&json_file)?;
 
     let mut conn = Connection::open_with_flags(
@@ -149,7 +120,7 @@ pub fn index(data_type: &String, json_file: &Path, chunk_size: usize, output: &P
     Ok(())
 }
 
-pub fn index_files(filename: &Path, chunk_size: usize, output: &Path) -> Result<()> {
+pub fn index_files(filename: &Path, output: &Path) -> Result<()> {
     let file = utils::buf_reader(&filename)?;
     for line in file.lines() {
         let path = line?.to_owned();
@@ -159,7 +130,7 @@ pub fn index_files(filename: &Path, chunk_size: usize, output: &Path) -> Result<
             .and_then(|s| s.to_str())
             .ok_or_else(|| anyhow!("Could not get data_type from file: {:?}", path))
             .map(|s| s.to_owned())?;
-        index(&data_type, &path, chunk_size, &output)?;
+        index(&data_type, &path, &output)?;
     }
     Ok(())
 }

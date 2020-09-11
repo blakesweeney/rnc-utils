@@ -75,8 +75,8 @@ enum FstCommands {
 enum JsonStoreCommands {
     /// Index a JSON document.
     Index {
-        // #[structopt(short, long, default_value = "1000000")]
-        // chunk_size: usize,
+        #[structopt(short, long, default_value = "{}")]
+        default: String,
 
         /// Type of data being indexed, eg, secondary_structure, hits, etc
         data_type: String,
@@ -91,9 +91,6 @@ enum JsonStoreCommands {
     },
 
     IndexFiles {
-        // #[structopt(short, long, default_value = "1000000")]
-        // chunk_size: usize,
-
         #[structopt(parse(from_os_str))]
         /// Filename of the raw json file, '-' means stdin.
         filename: PathBuf,
@@ -101,7 +98,6 @@ enum JsonStoreCommands {
         #[structopt(parse(from_os_str))]
         /// Filename to store the index in.
         output: PathBuf,
-        
     },
 
     /// Extract all data between min, max (inclusive) in a store.
@@ -118,6 +114,20 @@ enum JsonStoreCommands {
 
         #[structopt(parse(from_os_str), default_value = "-")]
         /// Output filename, '-' is stdout.
+        output: PathBuf,
+    },
+
+    ExtractIds {
+        #[structopt(parse(from_os_str))]
+        /// Filename of the id files, '-' means stdin.
+        cache: PathBuf,
+
+        #[structopt(parse(from_os_str))]
+        /// Filename of the id files, '-' means stdin.
+        filename: PathBuf,
+
+        #[structopt(parse(from_os_str))]
+        /// Filename to store the index in.
         output: PathBuf,
     },
 }
@@ -173,20 +183,25 @@ fn main() -> Result<()> {
         },
         Opt::JsonStore { command } => match command {
             JsonStoreCommands::Index {
+                default: _default,
                 data_type,
                 filename,
                 output,
             } => json_store::lmdb::index(&data_type, &filename, &output),
-            JsonStoreCommands::IndexFiles {
-                filename,
-                output,
-            } => json_store::lmdb::index_files(&filename, &output),
+            JsonStoreCommands::IndexFiles { filename, output } => {
+                json_store::lmdb::index_files(&filename, &output)
+            }
             JsonStoreCommands::ExtractRange {
                 filename,
                 min,
                 max,
                 output,
             } => json_store::lmdb::extract_range(&filename, min, max, &output),
+            JsonStoreCommands::ExtractIds {
+                cache,
+                filename,
+                output,
+            } => json_store::lmdb::extract_from_file(&cache, &filename, &output),
         },
     }
 }

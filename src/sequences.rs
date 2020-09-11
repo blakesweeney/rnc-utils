@@ -15,7 +15,6 @@ use regex::Regex;
 use crate::fst_utils;
 use crate::utils;
 
-
 #[derive(Serialize, Deserialize, Debug)]
 struct Sequence {
     id: String,
