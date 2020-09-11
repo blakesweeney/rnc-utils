@@ -6,8 +6,9 @@ in
 pkgs.mkShell {
   buildInputs = [
     pkgs.cargo
-    pkgs.rustfmt
+    pkgs.clippy
     pkgs.rust-analyzer
+    pkgs.rustfmt
     pkgs.sqlite
   ];
 
