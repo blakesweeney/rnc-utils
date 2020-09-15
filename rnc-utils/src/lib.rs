@@ -4,9 +4,7 @@ use std::io::prelude::*;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
-use anyhow::Result;
-
-pub fn buf_reader(filename: &Path) -> Result<Box<dyn BufRead>> {
+pub fn buf_reader(filename: &Path) -> io::Result<Box<dyn BufRead>> {
     if filename == Path::new("-") {
         let stdin = io::stdin();
         stdin.lock();
@@ -16,7 +14,7 @@ pub fn buf_reader(filename: &Path) -> Result<Box<dyn BufRead>> {
     return Ok(Box::new(BufReader::new(file)));
 }
 
-pub fn buf_writer(filename: &Path) -> Result<Box<dyn Write>> {
+pub fn buf_writer(filename: &Path) -> io::Result<Box<dyn Write>> {
     if filename == Path::new("-") {
         return Ok(Box::new(BufWriter::new(io::stdout())));
     }
