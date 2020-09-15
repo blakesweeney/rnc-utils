@@ -4,17 +4,63 @@ use std::convert::TryFrom;
 
 use regex::Regex;
 
-#[derive(Debug, PartialEq)]
-struct Urs(u64);
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Urs(u64);
 
-#[derive(Debug, PartialEq)]
-struct UrsTaxid(u64, u64);
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct UrsTaxid(u64, u64);
+
+impl Urs {
+    pub fn to_string(&self) -> String {
+        format!("URS{:010X}", self.0)
+    }
+}
+
+impl UrsTaxid {
+    pub fn to_string(&self) -> String {
+        format!("URS{:010X}_{}", self.0, self.1)
+    }
+
+    pub fn to_urs(&self) -> Urs {
+        return Urs(self.0);
+    }
+}
 
 impl TryFrom<&str> for Urs {
     type Error = std::num::ParseIntError;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
         u64::from_str_radix(&raw[3..], 16).map(|s| Urs(s))
+    }
+}
+
+impl TryFrom<&String> for Urs {
+    type Error = std::num::ParseIntError;
+
+    fn try_from(raw: &String) -> Result<Self, Self::Error> {
+        u64::from_str_radix(&raw[3..], 16).map(|s| Urs(s))
+    }
+}
+
+impl TryFrom<&str> for UrsTaxid {
+    type Error = std::num::ParseIntError;
+    
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+        let (raw_urs, raw_taxid) = raw.split_at(14);
+        let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
+        let taxid = raw_taxid.parse::<u64>()?;
+        Ok(Self(urs, taxid))
+    }
+}
+
+impl TryFrom<&String> for UrsTaxid {
+    type Error = std::num::ParseIntError;
+    
+    fn try_from(raw: &String) -> Result<Self, Self::Error> {
+        let (raw_urs, raw_taxid) = raw.split_at(14);
+        let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
+        let taxid = raw_taxid[1..].parse::<u64>()?;
+        Ok(Self(urs, taxid))
     }
 }
 
@@ -33,6 +79,18 @@ impl From<&UrsTaxid> for String {
 impl From<&UrsTaxid>for Urs {
     fn from(urs: &UrsTaxid) -> Urs {
         Urs(urs.0)
+    }
+}
+
+impl From<UrsTaxid>for Urs {
+    fn from(urs: UrsTaxid) -> Urs {
+        Urs(urs.0)
+    }
+}
+
+impl From<Urs> for u64 {
+    fn from(urs: Urs) -> u64 {
+        urs.0
     }
 }
 
@@ -66,6 +124,29 @@ impl Urs {
         path.push(urs);
         path.set_extension(extension);
         return path;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn can_convert_string_to_urs() -> Result<(), Box<dyn Error>> {
+        assert_eq!(Urs::try_from("URS0000000009")?, Urs(9));
+        assert_eq!(Urs::try_from("URS000000000A")?, Urs(10));
+        assert_eq!(Urs::try_from("URS0000C0472E")?, Urs(12601134));
+        assert_eq!(Urs::try_from("URS0000000001")?, Urs(1));
+        return Ok(());
+    }
+
+    #[test]
+    fn can_convert_string_to_urs_taxid() -> Result<(), Box<dyn Error>> {
+        assert_eq!(UrsTaxid::try_from("URS0000000009_1")?, UrsTaxid(9, 1));
+        assert_eq!(UrsTaxid::try_from("URS0000C0472E_12445")?, UrsTaxid(12601134, 12445));
+        assert_eq!(UrsTaxid::try_from("URS0000000001_562")?, UrsTaxid(1, 562));
+        return Ok(());
     }
 }
 

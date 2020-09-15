@@ -3,8 +3,9 @@ members = [
   "json2fasta",
   "split-sequences",
   "csv-partition",
-  "kv",
-  "jseq",
+  # "kv",
+  # "jseq",
+  "active-sequences",
   "rnc-core",
   "rnc-utils",
 ]

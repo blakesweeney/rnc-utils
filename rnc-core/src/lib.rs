@@ -5,3 +5,4 @@ pub mod urs;
 pub mod psql;
 pub mod json_sequence;
 pub mod nhmmer;
+pub mod urs_store;
