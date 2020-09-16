@@ -64,6 +64,12 @@ impl TryFrom<&String> for UrsTaxid {
     }
 }
 
+impl From<u64> for Urs {
+    fn from(raw: u64) -> Urs {
+        Urs(raw)
+    }
+}
+
 impl From<&Urs> for String {
     fn from(urs: &Urs) -> String {
         format!("URS{:010X}", urs.0)
@@ -138,6 +144,7 @@ mod tests {
         assert_eq!(Urs::try_from("URS000000000A")?, Urs(10));
         assert_eq!(Urs::try_from("URS0000C0472E")?, Urs(12601134));
         assert_eq!(Urs::try_from("URS0000000001")?, Urs(1));
+        assert_eq!(Urs::try_from("URS00001EE391")?, Urs(2024337));
         return Ok(());
     }
 
@@ -146,20 +153,26 @@ mod tests {
         assert_eq!(UrsTaxid::try_from("URS0000000009_1")?, UrsTaxid(9, 1));
         assert_eq!(UrsTaxid::try_from("URS0000C0472E_12445")?, UrsTaxid(12601134, 12445));
         assert_eq!(UrsTaxid::try_from("URS0000000001_562")?, UrsTaxid(1, 562));
+        assert_eq!(UrsTaxid::try_from("URS00008B8A75_9606")?, UrsTaxid(9144949, 9606));
+        assert_eq!(UrsTaxid::try_from("URS00001EE391_1250050")?, UrsTaxid(2024337, 1250050));
+        assert_eq!(UrsTaxid::try_from("URS00008C3642_9606")?, UrsTaxid(9188930, 9606));
         return Ok(());
     }
+
+    #[test]
+    fn matches_urs() {
+        assert_eq!(Urs::looks_like_urs("URS00000001AAB82D"), false);
+        assert_eq!(Urs::looks_like_urs("URS00000001B1"), true);
+        assert_eq!(Urs::looks_like_urs("URS0000000362"), true);
+    }
+
+    #[test]
+    fn correctly_generates_urs() {
+        assert_eq!(Urs::from(12601134u64).to_string(), String::from("URS0000C0472E"));
+        assert_eq!(Urs::from(1u64).to_string(), String::from("URS0000000001"));
+        assert_eq!(Urs::from(9u64).to_string(), String::from("URS0000000009"));
+    } 
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn matches_urs() {
-//         assert_eq!(looks_like_urs("URS00000001AAB82D"), false);
-//         assert_eq!(looks_like_urs("URS00000001B1"), true);
-//         assert_eq!(looks_like_urs("URS0000000362"), true);
-//     }
 
 //     #[test]
 //     fn extracts_urs() {
@@ -210,18 +223,3 @@ mod tests {
 //         );
 //     }
 
-//     #[test]
-//     fn correctly_generates_urs() {
-//         assert_eq!(int_to_urs(12601134), String::from("URS0000C0472E"));
-//         assert_eq!(int_to_urs(1), String::from("URS0000000001"));
-//         assert_eq!(int_to_urs(9), String::from("URS0000000009"));
-//     }
-
-//     #[test]
-//     fn correctly_generates_urs_index() -> Result<()> {
-//         assert_eq!(urs_to_index(&String::from("URS0000000009"))?, 9);
-//         assert_eq!(urs_to_index(&String::from("URS0000C0472E"))?, 12601134);
-//         assert_eq!(urs_to_index(&String::from("URS0000000001"))?, 1);
-//         return Ok(());
-//     }
-// }

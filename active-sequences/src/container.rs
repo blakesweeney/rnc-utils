@@ -22,8 +22,11 @@ impl UrsTaxidContainer {
             match reader.read_line(&mut buf)? {
                 0 => break,
                 _ => {
-                    set.insert(UrsTaxid::try_from(&buf)?);
-                },
+                    let to_parse = buf.trim_end();
+                    let urs_taxid = UrsTaxid::try_from(to_parse)?;
+                    set.insert(urs_taxid);
+                    buf.clear();
+                }
             }
         }
         Ok(Self { set })
