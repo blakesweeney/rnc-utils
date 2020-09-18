@@ -1,11 +1,10 @@
-use std::io::prelude::*;
 use std::error::Error;
+use std::io::prelude::*;
 
 pub fn each_json_line(
     mut reader: Box<dyn BufRead>,
     f: impl Fn(serde_json::Value) -> Result<(), Box<dyn Error>>,
 ) -> Result<(), Box<dyn Error>> {
-
     let mut buf = String::new();
     loop {
         match reader.read_line(&mut buf)? {

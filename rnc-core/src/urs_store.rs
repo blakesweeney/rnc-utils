@@ -47,7 +47,7 @@ impl BasicStore {
             match reader.read_line(&mut buf)? {
                 0 => break,
                 _ => {
-                    let urs: Urs = Urs::try_from(&buf)?;
+                    let urs: Urs = Urs::try_from(buf.trim_end())?;
                     set.insert(urs.into());
                     buf.clear();
                 }

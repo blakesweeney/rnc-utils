@@ -3,6 +3,8 @@ members = [
   "json2fasta",
   "split-sequences",
   "csv-partition",
+  "ftp-export",
+  "pubs",
   # "kv",
   # "jseq",
   "active-sequences",

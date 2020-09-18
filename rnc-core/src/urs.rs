@@ -1,6 +1,6 @@
+use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::str;
-use std::convert::TryFrom;
 
 use regex::Regex;
 
@@ -22,7 +22,7 @@ impl UrsTaxid {
     }
 
     pub fn to_urs(&self) -> Urs {
-        return Urs(self.0);
+        Urs(self.0)
     }
 }
 
@@ -44,7 +44,7 @@ impl TryFrom<&String> for Urs {
 
 impl TryFrom<&str> for UrsTaxid {
     type Error = std::num::ParseIntError;
-    
+
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
         let (raw_urs, raw_taxid) = raw.split_at(14);
         let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
@@ -55,7 +55,7 @@ impl TryFrom<&str> for UrsTaxid {
 
 impl TryFrom<&String> for UrsTaxid {
     type Error = std::num::ParseIntError;
-    
+
     fn try_from(raw: &String) -> Result<Self, Self::Error> {
         let (raw_urs, raw_taxid) = raw.split_at(14);
         let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
@@ -82,13 +82,13 @@ impl From<&UrsTaxid> for String {
     }
 }
 
-impl From<&UrsTaxid>for Urs {
+impl From<&UrsTaxid> for Urs {
     fn from(urs: &UrsTaxid) -> Urs {
         Urs(urs.0)
     }
 }
 
-impl From<UrsTaxid>for Urs {
+impl From<UrsTaxid> for Urs {
     fn from(urs: UrsTaxid) -> Urs {
         Urs(urs.0)
     }
@@ -111,7 +111,7 @@ impl Urs {
         lazy_static! {
             static ref PATTERN: Regex = Regex::new(r"URS[0-9A-F]{10}$").unwrap();
         }
-        return PATTERN.is_match(urs);
+        PATTERN.is_match(urs)
     }
 
     pub fn directory_path(&self, base: &Path) -> PathBuf {
@@ -121,7 +121,7 @@ impl Urs {
         for x in (3..11).step_by(2) {
             path.push(urs[x..(x + 2)].to_string());
         }
-        return path;
+        path
     }
 
     pub fn path_for(&self, base: &Path, extension: &str) -> PathBuf {
@@ -129,7 +129,7 @@ impl Urs {
         let urs: String = self.into();
         path.push(urs);
         path.set_extension(extension);
-        return path;
+        path
     }
 }
 
@@ -145,18 +145,30 @@ mod tests {
         assert_eq!(Urs::try_from("URS0000C0472E")?, Urs(12601134));
         assert_eq!(Urs::try_from("URS0000000001")?, Urs(1));
         assert_eq!(Urs::try_from("URS00001EE391")?, Urs(2024337));
-        return Ok(());
+        Ok(())
     }
 
     #[test]
     fn can_convert_string_to_urs_taxid() -> Result<(), Box<dyn Error>> {
         assert_eq!(UrsTaxid::try_from("URS0000000009_1")?, UrsTaxid(9, 1));
-        assert_eq!(UrsTaxid::try_from("URS0000C0472E_12445")?, UrsTaxid(12601134, 12445));
+        assert_eq!(
+            UrsTaxid::try_from("URS0000C0472E_12445")?,
+            UrsTaxid(12601134, 12445)
+        );
         assert_eq!(UrsTaxid::try_from("URS0000000001_562")?, UrsTaxid(1, 562));
-        assert_eq!(UrsTaxid::try_from("URS00008B8A75_9606")?, UrsTaxid(9144949, 9606));
-        assert_eq!(UrsTaxid::try_from("URS00001EE391_1250050")?, UrsTaxid(2024337, 1250050));
-        assert_eq!(UrsTaxid::try_from("URS00008C3642_9606")?, UrsTaxid(9188930, 9606));
-        return Ok(());
+        assert_eq!(
+            UrsTaxid::try_from("URS00008B8A75_9606")?,
+            UrsTaxid(9144949, 9606)
+        );
+        assert_eq!(
+            UrsTaxid::try_from("URS00001EE391_1250050")?,
+            UrsTaxid(2024337, 1250050)
+        );
+        assert_eq!(
+            UrsTaxid::try_from("URS00008C3642_9606")?,
+            UrsTaxid(9188930, 9606)
+        );
+        Ok(())
     }
 
     #[test]
@@ -168,10 +180,13 @@ mod tests {
 
     #[test]
     fn correctly_generates_urs() {
-        assert_eq!(Urs::from(12601134u64).to_string(), String::from("URS0000C0472E"));
+        assert_eq!(
+            Urs::from(12601134u64).to_string(),
+            String::from("URS0000C0472E")
+        );
         assert_eq!(Urs::from(1u64).to_string(), String::from("URS0000000001"));
         assert_eq!(Urs::from(9u64).to_string(), String::from("URS0000000009"));
-    } 
+    }
 }
 
 //     #[test]
@@ -222,4 +237,3 @@ mod tests {
 //             result
 //         );
 //     }
-
