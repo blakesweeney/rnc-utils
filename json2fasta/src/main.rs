@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::error::Error;
+use std::path::PathBuf;
 
 extern crate log;
 
@@ -7,7 +7,7 @@ use bio::io::fasta;
 
 use structopt::StructOpt;
 
-use rnc_core::json_sequence::{Sequence, each_sequence};
+use rnc_core::json_sequence::{each_sequence, Sequence};
 use rnc_core::nhmmer::valid_sequence;
 
 #[derive(Debug, StructOpt)]
