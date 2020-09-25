@@ -9,6 +9,12 @@ pub struct Chunks {
     index: u64,
 }
 
+impl Default for Chunks {
+    fn default() -> Chunks {
+        Self::new()
+    }
+}
+
 impl Chunks {
     pub fn new() -> Self {
         Self {
@@ -35,7 +41,7 @@ impl Chunks {
         self.index
     }
 
-    pub fn add_record(&mut self, record: &fasta::Record, limit: &Limits) -> () {
+    pub fn add_record(&mut self, record: &fasta::Record, limit: &Limits) {
         let nucleotides: u64 = record.seq().len() as u64;
         let mut file_size = 1;
         file_size += record.id().as_bytes().len();
@@ -53,5 +59,4 @@ impl Chunks {
             self.index += 1;
         }
     }
-
 }
