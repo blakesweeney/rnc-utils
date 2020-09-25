@@ -11,7 +11,7 @@ pub fn buf_reader(filename: &Path) -> io::Result<Box<dyn BufRead>> {
         return Ok(Box::new(BufReader::new(stdin)));
     }
     let file = File::open(filename)?;
-    return Ok(Box::new(BufReader::new(file)));
+    Ok(Box::new(BufReader::new(file)))
 }
 
 pub fn buf_writer(filename: &Path) -> io::Result<Box<dyn Write>> {
@@ -19,7 +19,7 @@ pub fn buf_writer(filename: &Path) -> io::Result<Box<dyn Write>> {
         return Ok(Box::new(BufWriter::new(io::stdout())));
     }
     let file = File::create(filename)?;
-    return Ok(Box::new(BufWriter::new(file)));
+    Ok(Box::new(BufWriter::new(file)))
 }
 
 pub fn writer(filename: &Path) -> io::Result<Box<dyn Write>> {
@@ -27,7 +27,7 @@ pub fn writer(filename: &Path) -> io::Result<Box<dyn Write>> {
         return Ok(Box::new(io::stdout()));
     }
     let file = File::create(filename)?;
-    return Ok(Box::new(file));
+    Ok(Box::new(file))
 }
 
 pub fn reader(filename: &Path) -> io::Result<Box<dyn Read>> {
@@ -37,5 +37,5 @@ pub fn reader(filename: &Path) -> io::Result<Box<dyn Read>> {
         return Ok(Box::new(stdin));
     }
     let file = File::open(filename)?;
-    return Ok(Box::new(file));
+    Ok(Box::new(file))
 }
