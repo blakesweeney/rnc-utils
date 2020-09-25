@@ -1,34 +1,31 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
 use anyhow::anyhow;
 use fallible_iterator::FallibleIterator;
+use walkdir::WalkDir;
 
 use rnc_core::europe_pmc::XmlIterator;
-use rnc_core::publications::{Reference, ReferenceId};
+use rnc_core::publications::external_reference::{ConversionError, ExternalReference};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct RawEntry {
     accession: String,
-    reference_id: ReferenceId,
+    reference_id: String,
 }
 
-#[derive(Debug, Serialize)]
-struct Entry {
-    accession: String,
-
-    #[serde(ignore)]
-    reference_id: Reference_id,
-
-    #[serde(flatten)]
-    reference: Reference,
+impl RawEntry {
+    pub fn reference_id(&self) -> Result<ExternalReference, ConversionError> {
+        ExternalReference::try_from(&self.reference_id)
+    }
 }
 
-type Mapping = HashMap<ReferenceId, Vec<RawEntry>>;
-// type CsvWriter = csv::Writer<impl Write>;
+type Mapping = HashMap<ExternalReference, Vec<RawEntry>>;
 
 fn load_mapping(raw: &Path) -> anyhow::Result<Mapping> {
     let mut mapping = HashMap::new();
@@ -36,7 +33,8 @@ fn load_mapping(raw: &Path) -> anyhow::Result<Mapping> {
     let reader = csv::Reader::from_reader(file);
     for result in reader.deserialize() {
         let entry: RawEntry = result?;
-        let mut current = mapping.entry(entry.reference_id).or_insert(Vec::new());
+        let ref_id = entry.reference_id()?;
+        let mut current = mapping.entry(ref_id).or_insert(Vec::new());
         current.push(entry);
     }
 
@@ -50,39 +48,43 @@ fn fetch_files(raw: &Path) -> anyhow::Result<Vec<PathBuf>> {
     if raw.is_file() {
         return Ok(vec![PathBuf::from(raw)]);
     }
-    if raw.is_directory() {
-        return WalkDir::new()
+    if raw.is_dir() {
+        let dirs = WalkDir::new(raw)
             .follow_links(true)
             .into_iter()
             .filter_entry(|e| e.file_type().is_file())
             .filter_map(Result::ok)
             .map(|e| PathBuf::from(e.path()))
-            .collect();
+            .collect::<Vec<PathBuf>>();
+        return Ok(dirs);
     }
 
-    Err(anyhow!("Cannot handle {:?}", &path))
+    Err(anyhow!("Cannot handle {:?}", &raw))
 }
 
 fn write_lookup(
     filename: &Path,
     mapping: &mut Mapping,
-    writer: &mut csv::Writer<W>,
+    writer: &mut csv::Writer<Box<dyn Write>>,
 ) -> anyhow::Result<()> {
     let mut iter = XmlIterator::from_file(&filename)?;
     while let Some(reference) = iter.next()? {
-        for pub_id in reference.pub_ids() {
+        for pub_id in reference.external_ids() {
             log::trace!("Looking up match references using {:?}", &pub_id);
             match mapping.remove(&pub_id) {
                 None => (),
                 Some(entries) => {
                     for raw in entries {
                         log::trace!("Found {:?} as a match", &raw);
-                        let entry = Entry {
-                            accession: raw.accession,
-                            reference_id: raw.reference_id,
-                            reference,
-                        };
-                        writer.serialize(&entry)?;
+                        writer.write_record(&[
+                            reference.md5(),
+                            raw.accession,
+                            reference.authors(),
+                            reference.location(),
+                            reference.title(),
+                            reference.pmid(),
+                            reference.doi(),
+                        ]);
                     }
                 }
             }

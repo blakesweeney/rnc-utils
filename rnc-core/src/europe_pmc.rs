@@ -9,7 +9,7 @@ use quick_xml::Reader;
 use fallible_iterator::FallibleIterator;
 use thiserror::Error;
 
-use crate::publications::{
+use crate::publications::reference::{
     Author, AuthorBuilder, AuthorBuildingError, Reference, ReferenceBuildError, ReferenceBuilder,
 };
 
@@ -59,7 +59,7 @@ impl XmlIterator<io::BufReader<File>> {
     ) -> Result<XmlIterator<io::BufReader<File>>, XmlError> {
         let file = File::open(path)?;
         let reader = io::BufReader::new(file);
-        return Ok(Self::from_reader(reader));
+        Ok(Self::from_reader(reader))
     }
 }
 

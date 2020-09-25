@@ -5,6 +5,7 @@ members = [
   "csv-partition",
   "ftp-export",
   "pubs",
+  "shuffle-json-sequences",
   # "kv",
   # "jseq",
   "active-sequences",

@@ -14,7 +14,7 @@ pub trait UrsStore {
     fn contains(&self, urs: &Urs) -> bool;
 
     fn add_urs_taxid(&mut self, urs: &UrsTaxid) {
-        return self.add(&urs.into());
+        self.add(&urs.into())
     }
 
     fn contains_parent_urs(&self, urs: &UrsTaxid) -> bool {

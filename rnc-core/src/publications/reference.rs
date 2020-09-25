@@ -1,20 +1,7 @@
-use std::convert::TryFrom;
-
 use thiserror::Error;
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Error, Debug)]
-pub enum ReferenceConversionError {
-    #[error("No prefix for the reference id")]
-    MissingPrefix,
-
-    #[error("The prefix `{0}` is not known")]
-    UnknownPrefix(String),
-
-    #[error("Format of reference `{0}` is invalid")]
-    InvalidFormat(String),
-}
+use crate::publications::external_reference::ExternalReference;
+use crate::publications::reference_type;
 
 #[derive(Error, Debug)]
 pub enum ReferenceBuildError {
@@ -28,18 +15,16 @@ pub enum AuthorBuildingError {
     NoName,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Author(String, String);
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Reference {
     title: String,
     authors: Vec<Author>,
     journal: String,
     year: String,
-    pmid: Option<String>,
-    pmcid: Option<String>,
-    doi: Option<String>,
+    external_ids: Vec<ExternalReference>,
 }
 
 pub struct AuthorBuilder {
@@ -52,27 +37,48 @@ pub struct ReferenceBuilder {
     authors: Vec<Author>,
     journal: Option<String>,
     year: Option<String>,
-    pmid: Option<String>,
-    pmcid: Option<String>,
-    doi: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum ReferenceId {
-    Pmid(String),
-    Doi(String),
-    Pmcid(String),
+    pmid: Option<ExternalReference>,
+    doi: Option<ExternalReference>,
+    pmcid: Option<ExternalReference>,
 }
 
 impl Reference {
     pub fn builder() -> ReferenceBuilder {
-        return ReferenceBuilder::new();
+        ReferenceBuilder::new()
+    }
+
+    pub fn external_ids(&self) -> &Vec<ExternalReference> {
+        &self.external_ids
+    }
+
+    pub fn location(&self) -> String {
+        "".to_string()
+    }
+
+    pub fn authors(&self) -> String {
+        "".to_string()
+    }
+
+    pub fn title(&self) -> &String {
+        &self.title
+    }
+
+    pub fn year(&self) -> &String {
+        &self.year
+    }
+
+    pub fn md5(&self) -> String {
+        let data: &[u8] = &[u8; 0];
+        format!("{:x}", md5::compute(data))
     }
 }
 
 impl AuthorBuilder {
     pub fn new() -> Self {
-        return Self { last: None, first: None };
+        Self {
+            last: None,
+            first: None,
+        }
     }
 
     pub fn set_last_name(&mut self, last: String) {
@@ -97,7 +103,7 @@ impl AuthorBuilder {
 
 impl ReferenceBuilder {
     pub fn new() -> Self {
-        return Self {
+        Self {
             title: None,
             authors: Vec::new(),
             journal: None,
@@ -105,7 +111,7 @@ impl ReferenceBuilder {
             pmid: None,
             pmcid: None,
             doi: None,
-        };
+        }
     }
 
     pub fn set_title(&mut self, title: String) {
@@ -117,15 +123,24 @@ impl ReferenceBuilder {
     }
 
     pub fn set_doi(&mut self, doi: String) {
-        self.doi = Some(doi);
+        self.doi = Some(ExternalReference::new(
+            reference_type::ReferenceType::Doi,
+            doi,
+        ));
     }
 
     pub fn set_pmid(&mut self, pmid: String) {
-        self.pmid = Some(pmid);
+        self.pmid = Some(ExternalReference::new(
+            reference_type::ReferenceType::Pmid,
+            pmid,
+        ));
     }
 
     pub fn set_pmcid(&mut self, pmcid: String) {
-        self.pmcid = Some(pmcid);
+        self.pmcid = Some(ExternalReference::new(
+            reference_type::ReferenceType::Pmcid,
+            pmcid,
+        ));
     }
 
     pub fn set_year(&mut self, year: String) {
@@ -138,46 +153,33 @@ impl ReferenceBuilder {
 
     pub fn build(self) -> Result<Reference, ReferenceBuildError> {
         let title = self.title.ok_or_else(|| ReferenceBuildError::NoTitle)?;
-        return Ok(Reference {
+        let mut external_ids = Vec::with_capacity(3);
+        if self.pmid.is_some() {
+            external_ids.push(self.pmid.unwrap())
+        }
+        if self.pmcid.is_some() {
+            external_ids.push(self.pmcid.unwrap())
+        }
+        if self.doi.is_some() {
+            external_ids.push(self.doi.unwrap())
+        }
+
+        Ok(Reference {
             title,
             authors: self.authors,
             journal: self.journal.unwrap(),
             year: self.year.unwrap(),
-            pmid: self.pmid,
-            pmcid: self.pmcid,
-            doi: self.doi,
-        });
+            external_ids,
+        })
     }
-}
 
-impl TryFrom<String> for ReferenceId {
-    type Error = ReferenceConversionError;
-
-    fn try_from(raw: String) -> Result<ReferenceId, Self::Error> {
-        let parts: Vec<&str> = raw.split(":").collect();
-        if parts.len() == 1 {
-            return Err(Self::Error::MissingPrefix);
-        }
-
-        if parts.len() > 2 {
-            return Err(Self::Error::InvalidFormat(raw));
-        }
-
-        match parts[0] {
-            "pmid" => Ok(Self::Pmid(parts[1].to_string())),
-            "doi" => Ok(Self::Doi(parts[1].to_string())),
-            "pmcid" => Ok(Self::Pmcid(parts[1].to_string())),
-            _ => Err(Self::Error::UnknownPrefix(parts[0].to_string())),
-        }
-    }
-}
-
-impl From<ReferenceId> for String {
-    fn from(raw: ReferenceId) -> String {
-        match raw {
-            ReferenceId::Pmid(id) => format!("pmid:{}", id),
-            ReferenceId::Doi(id) => format!("doi:{}", id),
-            ReferenceId::Pmcid(id) => format!("pmcid:{}", id),
-        }
+    pub fn clear(&mut self) {
+        self.title = None;
+        self.authors.clear();
+        self.journal = None;
+        self.year = None;
+        self.pmid = None;
+        self.pmcid = None;
+        self.doi = None;
     }
 }
