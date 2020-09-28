@@ -6,28 +6,9 @@ members = [
   "ftp-export",
   "pubs",
   "shuffle-json-sequences",
-  # "kv",
+  "kv",
   # "jseq",
   "active-sequences",
   "rnc-core",
   "rnc-utils",
 ]
-
-# [dependencies]
-# fst = "0.4"
-# structopt = "0.3"
-# serde = { version = "1.0", features = ["derive"] }
-# serde_json = "1.0"
-# log = "0.4"
-# anyhow = "1.0"
-# memmap = "0.7.0"
-# bio = "0.32.0"
-# regex = "1"
-# lazy_static = "1.4.0"
-# itertools = "0.9.0"
-# lmdb-rkv = "0.14.0"
-# serde-query = "0.1.2"
-
-# [dependencies.rusqlite]
-# version = "0.24.0"
-# features = ["bundled", "serde_json"]

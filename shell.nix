@@ -10,6 +10,7 @@ pkgs.mkShell {
     pkgs.rust-analyzer
     pkgs.rustfmt
     pkgs.sqlite
+    pkgs.moreutils
   ];
 
   propagatedBuildInputs = with pkgs; [
