@@ -1,7 +1,18 @@
 use std::str;
 use std::str::FromStr;
 
+use thiserror::Error;
+
 use crate::urs::Urs;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Could not parse urs: {0}")]
+    CannotParseUrs(String),
+
+    #[error("Could not parse taxid: {0}")]
+    CannotParseTaxid(String),
+}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct UrsTaxid(u64, u64);
@@ -25,12 +36,15 @@ impl UrsTaxid {
 }
 
 impl FromStr for UrsTaxid {
-    type Err = std::num::ParseIntError;
+    type Err = Error;
 
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
         let (raw_urs, raw_taxid) = raw.split_at(14);
-        let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
-        let taxid = raw_taxid.parse::<u64>()?;
+        let urs = u64::from_str_radix(&raw_urs[3..13], 16)
+            .map_err(|_| Error::CannotParseUrs(raw.to_string()))?;
+
+        let taxid = raw_taxid.parse::<u64>()
+            .map_err(|_| Error::CannotParseTaxid(raw_taxid.to_string()))?;
         Ok(Self(urs, taxid))
     }
 }

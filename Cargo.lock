@@ -423,9 +423,11 @@ dependencies = [
  "anyhow",
  "log",
  "rnc-core",
+ "rnc-test-utils",
  "rnc-utils",
  "serde_json",
  "structopt",
+ "test_bin",
 ]
 
 [[package]]
@@ -1035,7 +1037,6 @@ version = "0.1.0"
 dependencies = [
  "serde_json",
  "tempfile",
- "test_bin",
 ]
 
 [[package]]

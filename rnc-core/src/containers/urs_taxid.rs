@@ -17,6 +17,7 @@ use thiserror::Error;
 
 use crate::{
     urs::Urs,
+    urs_taxid,
     urs_taxid::UrsTaxid,
 };
 
@@ -25,8 +26,8 @@ pub enum Error {
     #[error("IO Error")]
     Io(#[from] io::Error),
 
-    #[error("Incorrectly formatted number")]
-    NumberFormatError(#[from] std::num::ParseIntError),
+    #[error("Incorrectly formatted URS_taxid")]
+    UrsTaxidError(#[from] urs_taxid::Error),
 }
 
 pub struct UrsTaxidMapping {
@@ -65,7 +66,7 @@ impl UrsTaxidMapping {
         })
     }
 
-    pub fn urs_taxids(&self, urs: Urs) -> Vec<UrsTaxid> {
+    pub fn urs_taxids(&self, urs: &Urs) -> Vec<UrsTaxid> {
         let id: u64 = urs.into();
         match self.mapping.get(&id) {
             None => Vec::with_capacity(0),
