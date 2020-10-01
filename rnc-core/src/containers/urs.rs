@@ -1,13 +1,19 @@
-use std::convert::TryFrom;
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::path::Path;
+use std::{
+    error::Error,
+    fs::File,
+    io::{
+        BufRead,
+        BufReader,
+    },
+    path::Path,
+};
 
 use fnv::FnvHashSet;
 
-use crate::urs::{Urs, UrsTaxid};
+use crate::{
+    urs::Urs,
+    urs_taxid::UrsTaxid,
+};
 
 pub trait UrsStore {
     fn add(&mut self, urs: &Urs);
@@ -36,6 +42,14 @@ impl UrsStore for BasicStore {
     }
 }
 
+impl Default for BasicStore {
+    fn default() -> Self {
+        Self {
+            set: FnvHashSet::default(),
+        }
+    }
+}
+
 impl BasicStore {
     pub fn from_urs_file(path: &Path) -> Result<Self, Box<dyn Error>> {
         let file = File::open(path)?;
@@ -47,13 +61,15 @@ impl BasicStore {
             match reader.read_line(&mut buf)? {
                 0 => break,
                 _ => {
-                    let urs: Urs = Urs::try_from(buf.trim_end())?;
+                    let urs: Urs = buf.trim_end().parse()?;
                     set.insert(urs.into());
                     buf.clear();
-                }
+                },
             }
         }
 
-        Ok(Self { set })
+        Ok(Self {
+            set,
+        })
     }
 }

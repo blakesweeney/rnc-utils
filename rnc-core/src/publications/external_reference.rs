@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::str::FromStr;
 
 use thiserror::Error;
 
@@ -28,22 +29,22 @@ impl ExternalReference {
         self.0
     }
 
-    pub fn ref_id(&self) -> &String {
+    pub fn ref_id(&self) -> &str {
         &self.1
     }
 }
 
-impl TryFrom<&String> for ExternalReference {
-    type Error = ConversionError;
+impl FromStr for ExternalReference {
+    type Err = ConversionError;
 
-    fn try_from(raw: &String) -> Result<ExternalReference, Self::Error> {
+    fn from_str(raw: &str) -> Result<ExternalReference, Self::Err> {
         let parts: Vec<&str> = raw.split(":").collect();
         if parts.len() == 1 {
-            return Err(Self::Error::MissingPrefix(raw.to_string()));
+            return Err(Self::Err::MissingPrefix(raw.to_string()));
         }
 
         if parts.len() > 2 {
-            return Err(Self::Error::InvalidFormat(raw.to_string()));
+            return Err(Self::Err::InvalidFormat(raw.to_string()));
         }
 
         let ref_type = reference_type::ReferenceType::try_from(parts[0])?;
@@ -51,7 +52,7 @@ impl TryFrom<&String> for ExternalReference {
     }
 }
 
-impl<'a> From<ExternalReference> for String {
+impl From<ExternalReference> for String {
     fn from(raw: ExternalReference) -> String {
         format!("{}:{}", raw.0, raw.1)
     }

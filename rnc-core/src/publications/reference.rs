@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use md5::{Md5, Digest};
+
 use crate::publications::external_reference::ExternalReference;
 use crate::publications::reference_type;
 
@@ -68,8 +70,11 @@ impl Reference {
     }
 
     pub fn md5(&self) -> String {
-        let data: &[u8] = &[u8; 0];
-        format!("{:x}", md5::compute(data))
+        let mut hasher = Md5::new();
+        hasher.update(self.authors().as_bytes());
+        hasher.update(self.location().as_bytes());
+        hasher.update(self.title().as_bytes());
+        format!("{:x}", hasher.finalize())
     }
 }
 

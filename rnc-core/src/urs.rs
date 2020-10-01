@@ -1,14 +1,11 @@
-use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::str;
+use std::str::FromStr;
 
 use regex::Regex;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Urs(u64);
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct UrsTaxid(u64, u64);
 
 impl Urs {
     pub fn to_string(&self) -> String {
@@ -16,51 +13,11 @@ impl Urs {
     }
 }
 
-impl UrsTaxid {
-    pub fn to_string(&self) -> String {
-        format!("URS{:010X}_{}", self.0, self.1)
-    }
+impl FromStr for Urs {
+    type Err = std::num::ParseIntError;
 
-    pub fn to_urs(&self) -> Urs {
-        Urs(self.0)
-    }
-}
-
-impl TryFrom<&str> for Urs {
-    type Error = std::num::ParseIntError;
-
-    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
         u64::from_str_radix(&raw[3..], 16).map(|s| Urs(s))
-    }
-}
-
-impl TryFrom<&String> for Urs {
-    type Error = std::num::ParseIntError;
-
-    fn try_from(raw: &String) -> Result<Self, Self::Error> {
-        u64::from_str_radix(&raw[3..], 16).map(|s| Urs(s))
-    }
-}
-
-impl TryFrom<&str> for UrsTaxid {
-    type Error = std::num::ParseIntError;
-
-    fn try_from(raw: &str) -> Result<Self, Self::Error> {
-        let (raw_urs, raw_taxid) = raw.split_at(14);
-        let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
-        let taxid = raw_taxid.parse::<u64>()?;
-        Ok(Self(urs, taxid))
-    }
-}
-
-impl TryFrom<&String> for UrsTaxid {
-    type Error = std::num::ParseIntError;
-
-    fn try_from(raw: &String) -> Result<Self, Self::Error> {
-        let (raw_urs, raw_taxid) = raw.split_at(14);
-        let urs = u64::from_str_radix(&raw_urs[3..13], 16)?;
-        let taxid = raw_taxid[1..].parse::<u64>()?;
-        Ok(Self(urs, taxid))
     }
 }
 
@@ -73,24 +30,6 @@ impl From<u64> for Urs {
 impl From<&Urs> for String {
     fn from(urs: &Urs) -> String {
         format!("URS{:010X}", urs.0)
-    }
-}
-
-impl From<&UrsTaxid> for String {
-    fn from(urs: &UrsTaxid) -> String {
-        format!("URS{:010X}_{}", urs.0, urs.1)
-    }
-}
-
-impl From<&UrsTaxid> for Urs {
-    fn from(urs: &UrsTaxid) -> Urs {
-        Urs(urs.0)
-    }
-}
-
-impl From<UrsTaxid> for Urs {
-    fn from(urs: UrsTaxid) -> Urs {
-        Urs(urs.0)
     }
 }
 
@@ -151,23 +90,11 @@ mod tests {
     #[test]
     fn can_convert_string_to_urs_taxid() -> Result<(), Box<dyn Error>> {
         assert_eq!(UrsTaxid::try_from("URS0000000009_1")?, UrsTaxid(9, 1));
-        assert_eq!(
-            UrsTaxid::try_from("URS0000C0472E_12445")?,
-            UrsTaxid(12601134, 12445)
-        );
+        assert_eq!(UrsTaxid::try_from("URS0000C0472E_12445")?, UrsTaxid(12601134, 12445));
         assert_eq!(UrsTaxid::try_from("URS0000000001_562")?, UrsTaxid(1, 562));
-        assert_eq!(
-            UrsTaxid::try_from("URS00008B8A75_9606")?,
-            UrsTaxid(9144949, 9606)
-        );
-        assert_eq!(
-            UrsTaxid::try_from("URS00001EE391_1250050")?,
-            UrsTaxid(2024337, 1250050)
-        );
-        assert_eq!(
-            UrsTaxid::try_from("URS00008C3642_9606")?,
-            UrsTaxid(9188930, 9606)
-        );
+        assert_eq!(UrsTaxid::try_from("URS00008B8A75_9606")?, UrsTaxid(9144949, 9606));
+        assert_eq!(UrsTaxid::try_from("URS00001EE391_1250050")?, UrsTaxid(2024337, 1250050));
+        assert_eq!(UrsTaxid::try_from("URS00008C3642_9606")?, UrsTaxid(9188930, 9606));
         Ok(())
     }
 
@@ -180,10 +107,7 @@ mod tests {
 
     #[test]
     fn correctly_generates_urs() {
-        assert_eq!(
-            Urs::from(12601134u64).to_string(),
-            String::from("URS0000C0472E")
-        );
+        assert_eq!(Urs::from(12601134u64).to_string(), String::from("URS0000C0472E"));
         assert_eq!(Urs::from(1u64).to_string(), String::from("URS0000000001"));
         assert_eq!(Urs::from(9u64).to_string(), String::from("URS0000000009"));
     }
