@@ -427,6 +427,7 @@ dependencies = [
  "rnc-utils",
  "serde_json",
  "structopt",
+ "tempfile",
  "test_bin",
 ]
 
@@ -618,6 +619,8 @@ dependencies = [
  "simplelog",
  "sled",
  "structopt",
+ "tempfile",
+ "test_bin",
 ]
 
 [[package]]

@@ -19,5 +19,6 @@ sled = "0.34.4"
 structopt = "0.3"
 
 [dev-dependencies]
-test_bin = "0.3.0"
+rnc-test-utils = { path = "../rnc-test-utils" }
 tempfile = "3"
+test_bin = "0.3.0"

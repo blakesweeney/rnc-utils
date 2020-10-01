@@ -1,11 +1,9 @@
 use std::{
     error::Error,
     io,
-    io::Write,
 };
 
 use std::{
-    io::BufRead,
     path::{
         Path,
         PathBuf,
@@ -13,40 +11,14 @@ use std::{
     process::Output,
 };
 
-use tempfile::{
-    tempdir,
-    NamedTempFile,
-};
-
 use serde_json::json;
 
-trait Jsonl {
-    fn jsonl(&self) -> Result<Vec<serde_json::Value>, Box<dyn Error>>;
-}
+use rnc_test_utils::{
+    temp_file_with,
+    Jsonl,
+};
 
-impl Jsonl for Output {
-    fn jsonl(&self) -> Result<Vec<serde_json::Value>, Box<dyn Error>> {
-        let data = String::from_utf8_lossy(&self.stdout);
-        let mut result = Vec::new();
-        for line in data.lines() {
-            result.push(serde_json::from_str(&line)?);
-        }
-        Ok(result)
-    }
-}
-
-impl Jsonl for NamedTempFile {
-    fn jsonl(&self) -> Result<Vec<serde_json::Value>, Box<dyn Error>> {
-        let buf = io::BufReader::new(self);
-        let mut data = Vec::new();
-        for line in buf.lines() {
-            let line = line?;
-            println!("{}", &line);
-            data.push(serde_json::from_str(&line)?);
-        }
-        Ok(data)
-    }
-}
+use tempfile::tempdir;
 
 fn index(data_type: &str, data_path: &Path, db_path: &Path) -> io::Result<Output> {
     test_bin::get_test_bin("kv").arg("index").arg(data_type).arg(data_path).arg(db_path).output()
@@ -54,14 +26,6 @@ fn index(data_type: &str, data_path: &Path, db_path: &Path) -> io::Result<Output
 
 fn lookup(id_file: &Path, db_path: &Path, output: &Path) -> io::Result<Output> {
     test_bin::get_test_bin("kv").arg("lookup").arg(db_path).arg(id_file).arg(output).output()
-}
-
-fn temp_file_with(lines: Vec<&str>) -> io::Result<NamedTempFile> {
-    let mut temp = NamedTempFile::new()?;
-    for line in lines {
-        writeln!(&mut temp, "{}", &line)?;
-    }
-    Ok(temp)
 }
 
 #[test]

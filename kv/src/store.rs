@@ -15,10 +15,7 @@ use serde_json::{
     Value,
 };
 
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::Result;
 
 use sled;
 
