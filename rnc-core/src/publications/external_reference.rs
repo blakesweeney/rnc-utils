@@ -25,6 +25,18 @@ impl ExternalReference {
         Self(ref_type, ref_id)
     }
 
+    pub fn pmid(ref_id: String) -> Self {
+        Self(reference_type::ReferenceType::Pmid, ref_id)
+    }
+
+    pub fn pmcid(ref_id: String) -> Self {
+        Self(reference_type::ReferenceType::Pmcid, ref_id)
+    }
+
+    pub fn doi(ref_id: String) -> Self {
+        Self(reference_type::ReferenceType::Doi, ref_id)
+    }
+
     pub fn ref_type(&self) -> reference_type::ReferenceType {
         self.0
     }

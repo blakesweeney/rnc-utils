@@ -1,9 +1,14 @@
 use thiserror::Error;
 
-use md5::{Md5, Digest};
+use md5::{
+    Digest,
+    Md5,
+};
 
-use crate::publications::external_reference::ExternalReference;
-use crate::publications::reference_type;
+use crate::publications::{
+    external_reference::ExternalReference,
+    reference_type,
+};
 
 #[derive(Error, Debug)]
 pub enum ReferenceBuildError {
@@ -45,6 +50,22 @@ pub struct ReferenceBuilder {
 }
 
 impl Reference {
+    pub fn new(
+        authors: Vec<Author>,
+        title: String,
+        journal: String,
+        year: String,
+        external_ids: Vec<ExternalReference>,
+    ) -> Self {
+        Self {
+            authors,
+            title,
+            journal,
+            year,
+            external_ids,
+        }
+    }
+
     pub fn builder() -> ReferenceBuilder {
         ReferenceBuilder::new()
     }
@@ -99,12 +120,24 @@ impl AuthorBuilder {
             return Err(AuthorBuildingError::NoName);
         }
 
-        Ok(Author(
-            self.first.unwrap_or("".to_string()),
-            self.last.unwrap_or("".to_string()),
-        ))
+        Ok(Author(self.first.unwrap_or("".to_string()), self.last.unwrap_or("".to_string())))
     }
 }
+
+impl From<(String, String)> for Author {
+    fn from(given: (String, String)) -> Self {
+        let (first, last) = given;
+        Author(first, last)
+    }
+}
+
+impl From<(&str, &str)> for Author {
+    fn from(given: (&str, &str)) -> Self {
+        let (first, last) = given;
+        Author(first.to_string(), last.to_string())
+    }
+}
+
 
 impl ReferenceBuilder {
     pub fn new() -> Self {
@@ -128,24 +161,15 @@ impl ReferenceBuilder {
     }
 
     pub fn set_doi(&mut self, doi: String) {
-        self.doi = Some(ExternalReference::new(
-            reference_type::ReferenceType::Doi,
-            doi,
-        ));
+        self.doi = Some(ExternalReference::new(reference_type::ReferenceType::Doi, doi));
     }
 
     pub fn set_pmid(&mut self, pmid: String) {
-        self.pmid = Some(ExternalReference::new(
-            reference_type::ReferenceType::Pmid,
-            pmid,
-        ));
+        self.pmid = Some(ExternalReference::new(reference_type::ReferenceType::Pmid, pmid));
     }
 
     pub fn set_pmcid(&mut self, pmcid: String) {
-        self.pmcid = Some(ExternalReference::new(
-            reference_type::ReferenceType::Pmcid,
-            pmcid,
-        ));
+        self.pmcid = Some(ExternalReference::new(reference_type::ReferenceType::Pmcid, pmcid));
     }
 
     pub fn set_year(&mut self, year: String) {

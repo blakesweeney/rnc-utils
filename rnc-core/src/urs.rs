@@ -79,22 +79,11 @@ mod tests {
 
     #[test]
     fn can_convert_string_to_urs() -> Result<(), Box<dyn Error>> {
-        assert_eq!(Urs::try_from("URS0000000009")?, Urs(9));
-        assert_eq!(Urs::try_from("URS000000000A")?, Urs(10));
-        assert_eq!(Urs::try_from("URS0000C0472E")?, Urs(12601134));
-        assert_eq!(Urs::try_from("URS0000000001")?, Urs(1));
-        assert_eq!(Urs::try_from("URS00001EE391")?, Urs(2024337));
-        Ok(())
-    }
-
-    #[test]
-    fn can_convert_string_to_urs_taxid() -> Result<(), Box<dyn Error>> {
-        assert_eq!(UrsTaxid::try_from("URS0000000009_1")?, UrsTaxid(9, 1));
-        assert_eq!(UrsTaxid::try_from("URS0000C0472E_12445")?, UrsTaxid(12601134, 12445));
-        assert_eq!(UrsTaxid::try_from("URS0000000001_562")?, UrsTaxid(1, 562));
-        assert_eq!(UrsTaxid::try_from("URS00008B8A75_9606")?, UrsTaxid(9144949, 9606));
-        assert_eq!(UrsTaxid::try_from("URS00001EE391_1250050")?, UrsTaxid(2024337, 1250050));
-        assert_eq!(UrsTaxid::try_from("URS00008C3642_9606")?, UrsTaxid(9188930, 9606));
+        assert_eq!("URS0000000009".parse::<Urs>()?, Urs(9));
+        assert_eq!("URS000000000A".parse::<Urs>()?, Urs(10));
+        assert_eq!("URS0000C0472E".parse::<Urs>()?, Urs(12601134));
+        assert_eq!("URS0000000001".parse::<Urs>()?, Urs(1));
+        assert_eq!("URS00001EE391".parse::<Urs>()?, Urs(2024337));
         Ok(())
     }
 

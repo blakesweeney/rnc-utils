@@ -1,5 +1,7 @@
-use std::str;
-use std::str::FromStr;
+use std::{
+    str,
+    str::FromStr,
+};
 
 use thiserror::Error;
 
@@ -43,8 +45,8 @@ impl FromStr for UrsTaxid {
         let urs = u64::from_str_radix(&raw_urs[3..13], 16)
             .map_err(|_| Error::CannotParseUrs(raw.to_string()))?;
 
-        let taxid = raw_taxid.parse::<u64>()
-            .map_err(|_| Error::CannotParseTaxid(raw_taxid.to_string()))?;
+        let taxid =
+            raw_taxid.parse::<u64>().map_err(|_| Error::CannotParseTaxid(raw_taxid.to_string()))?;
         Ok(Self(urs, taxid))
     }
 }
@@ -64,5 +66,22 @@ impl From<&UrsTaxid> for Urs {
 impl From<UrsTaxid> for Urs {
     fn from(urs: UrsTaxid) -> Urs {
         Urs::from(urs.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn can_convert_string_to_urs_taxid() -> Result<(), Box<dyn Error>> {
+        assert_eq!("URS0000000009_1".parse::<UrsTaxid>()?, UrsTaxid(9, 1));
+        assert_eq!("URS0000C0472E_12445".parse::<UrsTaxid>()?, UrsTaxid(12601134, 12445));
+        assert_eq!("URS0000000001_562".parse::<UrsTaxid>()?, UrsTaxid(1, 562));
+        assert_eq!("URS00008B8A75_9606".parse::<UrsTaxid>()?, UrsTaxid(9144949, 9606));
+        assert_eq!("URS00001EE391_1250050".parse::<UrsTaxid>()?, UrsTaxid(2024337, 1250050));
+        assert_eq!("URS00008C3642_9606".parse::<UrsTaxid>()?, UrsTaxid(9188930, 9606));
+        Ok(())
     }
 }

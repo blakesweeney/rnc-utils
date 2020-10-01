@@ -1,16 +1,25 @@
-use std::fs::File;
-use std::io;
-use std::io::BufRead;
-use std::path::Path;
+use std::{
+    fs::File,
+    io,
+    io::BufRead,
+    path::Path,
+};
 
-use quick_xml::events::Event;
-use quick_xml::Reader;
+use quick_xml::{
+    events::Event,
+    Reader,
+};
 
 use fallible_iterator::FallibleIterator;
 use thiserror::Error;
 
 use crate::publications::reference::{
-    Author, AuthorBuilder, AuthorBuildingError, Reference, ReferenceBuildError, ReferenceBuilder,
+    Author,
+    AuthorBuilder,
+    AuthorBuildingError,
+    Reference,
+    ReferenceBuildError,
+    ReferenceBuilder,
 };
 
 #[derive(Error, Debug)]
@@ -79,7 +88,7 @@ impl<R: BufRead> XmlIterator<R> {
                     b"Author" => break,
                     b"AuthorList" => {
                         return Ok(None);
-                    }
+                    },
                     b"LastName" => (),
                     b"Initials" => (),
                     n => {
@@ -108,8 +117,8 @@ impl<R: BufRead> XmlIterator<R> {
 }
 
 impl<R: BufRead> FallibleIterator for XmlIterator<R> {
-    type Item = Reference;
     type Error = XmlError;
+    type Item = Reference;
 
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
         let mut buf = Vec::new();
@@ -143,7 +152,7 @@ impl<R: BufRead> FallibleIterator for XmlIterator<R> {
                                         while let Some(author) = self.next_author()? {
                                             builder.add_author(author);
                                         }
-                                    }
+                                    },
                                     b"journalTitle" => builder.set_journal(
                                         self.reader.read_text(e.name(), &mut Vec::new())?,
                                     ),
@@ -152,7 +161,7 @@ impl<R: BufRead> FallibleIterator for XmlIterator<R> {
                                     ),
                                     n => {
                                         return Err(XmlError::UnknownArticleProperty(node_name(n)));
-                                    }
+                                    },
                                 },
                                 Event::End(ref e) => match e.name() {
                                     b"PMC_ARTICLE" => break,
@@ -162,11 +171,11 @@ impl<R: BufRead> FallibleIterator for XmlIterator<R> {
                             }
                         }
                         return Ok(Some(builder.build()?));
-                    }
+                    },
                     b"PMCSet" => (),
                     n => {
                         return Err(XmlError::UnknownPmcProperty(node_name(n)));
-                    }
+                    },
                 },
                 Event::Eof => return Ok(None),
                 _ => (),
@@ -179,6 +188,10 @@ impl<R: BufRead> FallibleIterator for XmlIterator<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::publications::{
+        external_reference::ExternalReference,
+        reference::Author,
+    };
 
     #[test]
     fn can_parse_simple_xml() -> Result<(), XmlError> {
@@ -239,12 +252,31 @@ mod tests {
             </PMC_ARTICLE>
         </PMCSet>
         "#;
+
         let mut iterator = XmlIterator::from_str(xml);
         let mut refs = Vec::new();
         while let Some(reference) = iterator.next()? {
             refs.push(reference);
         }
-        assert_eq!(refs, vec![]);
+
+        let mut builder = Reference::builder();
+        builder.set_pmid(String::from("26184978"));
+        builder.set_pmcid(String::from("PMC4505325"));
+        builder.set_doi(String::from("10.1038/srep12276"));
+        builder.set_year(String::from("2015"));
+        builder.set_journal(String::from("Scientific reports"));
+        builder.set_title(String::from("MiR-135b-5p and MiR-499a-3p Promote Cell Proliferation and Migration in Atherosclerosis by Directly Targeting MEF2C."));
+        builder.add_author(Author::from(("Z", "Xu")));
+        builder.add_author(Author::from(("Y", "Han")));
+        builder.add_author(Author::from(("J", "Liu")));
+        builder.add_author(Author::from(("F", "Jiang")));
+        builder.add_author(Author::from(("H", "Hu")));
+        builder.add_author(Author::from(("Y", "Wang")));
+        builder.add_author(Author::from(("Q", "Liu")));
+        builder.add_author(Author::from(("Y", "Gong")));
+        builder.add_author(Author::from(("X", "Li")));
+
+        assert_eq!(refs, vec![builder.build()?]);
         Ok(())
     }
 }
