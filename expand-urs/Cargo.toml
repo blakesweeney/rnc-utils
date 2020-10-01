@@ -16,5 +16,6 @@ structopt = "0.3"
 
 [dev-dependencies]
 rnc-test-utils = { path = "../rnc-test-utils" }
+tempfile = "3"
 test_bin = "0.3.0"
 
