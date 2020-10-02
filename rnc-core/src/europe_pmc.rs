@@ -188,10 +188,7 @@ impl<R: BufRead> FallibleIterator for XmlIterator<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::publications::{
-        external_reference::ExternalReference,
-        reference::Author,
-    };
+    use crate::publications::reference::Author;
 
     #[test]
     fn can_parse_simple_xml() -> Result<(), XmlError> {

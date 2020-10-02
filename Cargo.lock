@@ -1147,10 +1147,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shuffle-json-sequences"
-version = "0.1.0"
-
-[[package]]
 name = "simplelog"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,17 +1,29 @@
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::fs::File;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::Write,
+    path::{
+        Path,
+        PathBuf,
+    },
+};
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 use anyhow::anyhow;
 use fallible_iterator::FallibleIterator;
 use walkdir::WalkDir;
 
-use rnc_core::europe_pmc::XmlIterator;
-use rnc_core::publications::external_reference::{ConversionError, ExternalReference};
+use rnc_core::{
+    europe_pmc::XmlIterator,
+    publications::external_reference::{
+        ConversionError,
+        ExternalReference,
+    },
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct RawEntry {
@@ -21,7 +33,7 @@ struct RawEntry {
 
 impl RawEntry {
     pub fn reference_id(&self) -> Result<ExternalReference, ConversionError> {
-        ExternalReference::try_from(&self.reference_id)
+        self.reference_id.parse::<ExternalReference>()
     }
 }
 
@@ -81,12 +93,12 @@ fn write_lookup(
                             raw.accession,
                             reference.authors(),
                             reference.location(),
-                            reference.title(),
+                            reference.title().to_string(),
                             reference.pmid(),
                             reference.doi(),
                         ]);
                     }
-                }
+                },
             }
         }
     }
@@ -106,9 +118,8 @@ pub fn write_references(
         return Err(anyhow!("No xml files found in {:?}", &xml_directory));
     }
 
-    let mut writer = csv::WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(rnc_utils::writer(&output)?);
+    let mut writer =
+        csv::WriterBuilder::new().has_headers(false).from_writer(rnc_utils::writer(&output)?);
 
     let mut mapping = load_mapping(&raw)?;
     if mapping.is_empty() {
@@ -136,7 +147,7 @@ pub fn write_references(
                     missing.serialize(&record)?;
                 }
             }
-        }
+        },
     }
 
     Ok(())

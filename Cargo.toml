@@ -10,7 +10,6 @@ members = [
   "rnc-core",
   "rnc-utils",
   "rnc-test-utils",
-  "shuffle-json-sequences",
   "split-sequences",
   # "jseq",
 ]

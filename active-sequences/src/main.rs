@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::error::Error;
 use std::path::PathBuf;
 
@@ -9,7 +8,7 @@ use bio::io::fasta;
 use structopt::StructOpt;
 
 use rnc_core::json_sequence::{each_sequence, Sequence};
-use rnc_core::urs::UrsTaxid;
+use rnc_core::urs_taxid::UrsTaxid;
 
 pub mod container;
 
@@ -43,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let container = UrsTaxidContainer::from_path(&opt.xref_urs_taxids)?;
     each_sequence(input, |sequence: Sequence| {
-        let urs_taxid = UrsTaxid::try_from(sequence.id)?;
+        let urs_taxid: UrsTaxid = sequence.id.parse()?;
         if container.contains(&urs_taxid) {
             writer.write_record(&sequence.into())?;
         }

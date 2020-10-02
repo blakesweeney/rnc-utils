@@ -1,12 +1,15 @@
-use std::convert::TryFrom;
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::path::Path;
+use std::{
+    error::Error,
+    fs::File,
+    io::{
+        prelude::*,
+        BufReader,
+    },
+    path::Path,
+};
 
 use fnv::FnvHashSet;
-use rnc_core::urs::UrsTaxid;
+use rnc_core::urs_taxid::UrsTaxid;
 
 pub struct UrsTaxidContainer {
     set: FnvHashSet<UrsTaxid>,
@@ -23,13 +26,15 @@ impl UrsTaxidContainer {
                 0 => break,
                 _ => {
                     let to_parse = buf.trim_end();
-                    let urs_taxid = UrsTaxid::try_from(to_parse)?;
+                    let urs_taxid: UrsTaxid = to_parse.parse()?;
                     set.insert(urs_taxid);
                     buf.clear();
-                }
+                },
             }
         }
-        Ok(Self { set })
+        Ok(Self {
+            set,
+        })
     }
 
     pub fn contains(&self, urs: &UrsTaxid) -> bool {
