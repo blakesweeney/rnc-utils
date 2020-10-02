@@ -5,10 +5,7 @@ use md5::{
     Md5,
 };
 
-use crate::publications::{
-    external_reference::ExternalReference,
-    reference_type,
-};
+use crate::publications::external_reference::ExternalReference;
 
 #[derive(Error, Debug)]
 pub enum ReferenceBuildError {
@@ -26,12 +23,19 @@ pub enum AuthorBuildingError {
 pub struct Author(String, String);
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct RefExternal {
+    pmid: Option<String>,
+    pmcid: Option<String>,
+    doi: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Reference {
     title: String,
     authors: Vec<Author>,
     journal: String,
     year: String,
-    external_ids: Vec<ExternalReference>,
+    external: RefExternal,
 }
 
 pub struct AuthorBuilder {
@@ -44,34 +48,25 @@ pub struct ReferenceBuilder {
     authors: Vec<Author>,
     journal: Option<String>,
     year: Option<String>,
-    pmid: Option<ExternalReference>,
-    doi: Option<ExternalReference>,
-    pmcid: Option<ExternalReference>,
+    pmid: Option<String>,
+    doi: Option<String>,
+    pmcid: Option<String>,
 }
 
 impl Reference {
-    pub fn new(
-        authors: Vec<Author>,
-        title: String,
-        journal: String,
-        year: String,
-        external_ids: Vec<ExternalReference>,
-    ) -> Self {
-        Self {
-            authors,
-            title,
-            journal,
-            year,
-            external_ids,
-        }
-    }
-
     pub fn builder() -> ReferenceBuilder {
         ReferenceBuilder::new()
     }
 
-    pub fn external_ids(&self) -> &Vec<ExternalReference> {
-        &self.external_ids
+    pub fn external_ids(&self) -> Vec<ExternalReference> {
+        let mut ids = Vec::with_capacity(3);
+        let raw = vec![self.pmid(), self.doi(), self.pmcid()];
+        for external in raw {
+            if external.is_some() {
+                ids.push(external.unwrap())
+            }
+        }
+        ids
     }
 
     pub fn location(&self) -> String {
@@ -88,6 +83,18 @@ impl Reference {
 
     pub fn year(&self) -> &String {
         &self.year
+    }
+
+    pub fn pmid(&self) -> Option<ExternalReference> {
+        self.external.pmid.as_ref().map(|s| ExternalReference::pmid(s.to_string()))
+    }
+
+    pub fn pmcid(&self) -> Option<ExternalReference> {
+        self.external.pmcid.as_ref().map(|s| ExternalReference::pmcid(s.to_string()))
+    }
+
+    pub fn doi(&self) -> Option<ExternalReference> {
+        self.external.doi.as_ref().map(|s| ExternalReference::doi(s.to_string()))
     }
 
     pub fn md5(&self) -> String {
@@ -138,7 +145,6 @@ impl From<(&str, &str)> for Author {
     }
 }
 
-
 impl ReferenceBuilder {
     pub fn new() -> Self {
         Self {
@@ -161,15 +167,15 @@ impl ReferenceBuilder {
     }
 
     pub fn set_doi(&mut self, doi: String) {
-        self.doi = Some(ExternalReference::new(reference_type::ReferenceType::Doi, doi));
+        self.doi = Some(doi);
     }
 
     pub fn set_pmid(&mut self, pmid: String) {
-        self.pmid = Some(ExternalReference::new(reference_type::ReferenceType::Pmid, pmid));
+        self.pmid = Some(pmid);
     }
 
     pub fn set_pmcid(&mut self, pmcid: String) {
-        self.pmcid = Some(ExternalReference::new(reference_type::ReferenceType::Pmcid, pmcid));
+        self.pmcid = Some(pmcid);
     }
 
     pub fn set_year(&mut self, year: String) {
@@ -182,23 +188,18 @@ impl ReferenceBuilder {
 
     pub fn build(self) -> Result<Reference, ReferenceBuildError> {
         let title = self.title.ok_or_else(|| ReferenceBuildError::NoTitle)?;
-        let mut external_ids = Vec::with_capacity(3);
-        if self.pmid.is_some() {
-            external_ids.push(self.pmid.unwrap())
-        }
-        if self.pmcid.is_some() {
-            external_ids.push(self.pmcid.unwrap())
-        }
-        if self.doi.is_some() {
-            external_ids.push(self.doi.unwrap())
-        }
+        let external = RefExternal {
+            pmid: self.pmid,
+            pmcid: self.pmcid,
+            doi: self.doi,
+        };
 
         Ok(Reference {
             title,
             authors: self.authors,
             journal: self.journal.unwrap(),
             year: self.year.unwrap(),
-            external_ids,
+            external,
         })
     }
 

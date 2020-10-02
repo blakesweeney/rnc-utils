@@ -42,11 +42,11 @@ type Mapping = HashMap<ExternalReference, Vec<RawEntry>>;
 fn load_mapping(raw: &Path) -> anyhow::Result<Mapping> {
     let mut mapping = HashMap::new();
     let file = rnc_utils::reader(&raw)?;
-    let reader = csv::Reader::from_reader(file);
+    let mut reader = csv::Reader::from_reader(file);
     for result in reader.deserialize() {
         let entry: RawEntry = result?;
         let ref_id = entry.reference_id()?;
-        let mut current = mapping.entry(ref_id).or_insert(Vec::new());
+        let current = mapping.entry(ref_id).or_insert(Vec::new());
         current.push(entry);
     }
 
@@ -94,9 +94,9 @@ fn write_lookup(
                             reference.authors(),
                             reference.location(),
                             reference.title().to_string(),
-                            reference.pmid(),
-                            reference.doi(),
-                        ]);
+                            reference.pmid().map(|s| s.to_string()).unwrap_or(String::new()),
+                            reference.doi().map(|s| s.to_string()).unwrap_or(String::new()),
+                        ])?;
                     }
                 },
             }
@@ -140,7 +140,7 @@ pub fn write_references(
         Some(path) => {
             log::info!("Writing {} missing data to {:?}", mapping.len(), &path);
             let missing = File::create(&path)?;
-            let missing = csv::Writer::from_writer(missing);
+            let mut missing = csv::Writer::from_writer(missing);
             for (key, records) in &mapping {
                 log::warn!("Did not find publication information for {:?}", &key);
                 for record in records {

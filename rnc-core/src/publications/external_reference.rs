@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::str::FromStr;
 
 use thiserror::Error;
@@ -44,6 +43,10 @@ impl ExternalReference {
     pub fn ref_id(&self) -> &str {
         &self.1
     }
+
+    pub fn to_string(&self) -> String {
+        format!("{}:{}", self.0.to_string(), self.0)
+    }
 }
 
 impl FromStr for ExternalReference {
@@ -59,7 +62,7 @@ impl FromStr for ExternalReference {
             return Err(Self::Err::InvalidFormat(raw.to_string()));
         }
 
-        let ref_type = reference_type::ReferenceType::try_from(parts[0])?;
+        let ref_type: reference_type::ReferenceType = parts[0].parse()?;
         Ok(ExternalReference(ref_type, parts[1].to_string()))
     }
 }

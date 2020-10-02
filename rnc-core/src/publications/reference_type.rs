@@ -1,5 +1,5 @@
 use std::fmt;
-use std::convert::TryFrom;
+use std::str::FromStr;
 
 use thiserror::Error;
 
@@ -26,10 +26,10 @@ impl<'a> From<ReferenceType> for &'a str {
     }
 }
 
-impl<'a> TryFrom<&'a str> for ReferenceType {
-    type Error = ConversionError;
+impl FromStr for ReferenceType {
+    type Err = ConversionError;
     
-    fn try_from(raw: &'a str) -> Result<ReferenceType, Self::Error> {
+    fn from_str(raw: &str) -> Result<ReferenceType, Self::Err> {
         match raw {
             "pmid" => Ok(ReferenceType::Pmid),
             "pmcid" => Ok(ReferenceType::Pmcid),
