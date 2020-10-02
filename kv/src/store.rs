@@ -1,8 +1,10 @@
 use std::{
     collections::HashMap,
-    io::BufRead,
-    path::Path,
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
     str,
+    thread,
+    fs::File,
 };
 
 use serde_query::{
@@ -16,6 +18,8 @@ use serde_json::{
 };
 
 use anyhow::Result;
+
+use crossbeam_channel::{Sender, unbounded};
 
 use sled;
 
@@ -58,14 +62,60 @@ fn concatenate_merge(_key: &[u8], old_value: Option<&[u8]>, new_bytes: &[u8]) ->
 }
 
 pub fn index(spec: &Spec, data_type: &str, filename: &Path) -> anyhow::Result<()> {
-    let reader = rnc_utils::buf_reader(&filename)?;
+    let mut reader = rnc_utils::buf_reader(&filename)?;
     let db: sled::Db = sled::open(spec.path)?;
     let store: sled::Tree = db.open_tree(data_type)?;
     store.set_merge_operator(concatenate_merge);
+    let mut buf = String::new();
+    loop {
+        match reader.read_line(&mut buf)? {
+            0 => break,
+            _ => {
+                let line = buf.replace("\\\\", "\\");
+                let id: DocId = serde_json::from_str::<Query<DocId>>(&line)?.into();
+                store.merge(id.id.as_bytes(), line.as_bytes())?;
+                buf.clear();
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn send_file_lines(path: &Path, sender: Sender<(String, DocId, String)>) {
+    let file = File::open(path).unwrap();
+    let mut reader = BufReader::new(file);
+    let mut buf = String::new();
+    let data_type = path.file_stem().unwrap().to_str().unwrap().to_string();
+    loop {
+        match reader.read_line(&mut buf).unwrap() {
+            0 => break,
+            _ => {
+                let line = buf.replace("\\\\", "\\");
+                let id: DocId = serde_json::from_str::<Query<DocId>>(&line).unwrap().into();
+                sender.send((data_type.to_string(), id, line.to_string())).unwrap();
+                buf.clear();
+            }
+        }
+    }
+}
+
+pub fn index_files(spec: &Spec, filename: &Path) -> anyhow::Result<()> {
+    let reader = rnc_utils::buf_reader(&filename)?;
+    let (json_sender, json_reciever) = unbounded();
     for line in reader.lines() {
         let line = line?;
-        let id: DocId = serde_json::from_str::<Query<DocId>>(&line)?.into();
-        store.merge(id.id.as_bytes(), line.as_bytes())?;
+        let filename = line.trim_end();
+        let path = PathBuf::from(filename);
+        let sender = json_sender.clone();
+        thread::spawn(move || send_file_lines(&path, sender));
+    }
+
+    let db: sled::Db = sled::open(spec.path)?;
+    db.set_merge_operator(concatenate_merge);
+    for (data_type, id, data) in json_reciever {
+        let store: sled::Tree = db.open_tree(data_type)?;
+        store.merge(id.id.as_bytes(), data.as_bytes())?;
     }
 
     Ok(())

@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0"
+crossbeam-channel = "0.4"
 fallible-iterator = "0.2.0"
 log = "0.4"
 rnc-utils = { path = "../rnc-utils/" }

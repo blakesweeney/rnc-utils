@@ -278,6 +278,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b153fe7cbef478c567df0f972e02e6d736db11affe43dfc9c56a9374d1adfb87"
+dependencies = [
+ "crossbeam-utils",
+ "maybe-uninit",
+]
+
+[[package]]
 name = "crossbeam-epoch"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -609,6 +619,7 @@ name = "kv"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "crossbeam-channel",
  "fallible-iterator",
  "log",
  "rnc-test-utils",
@@ -1087,6 +1098,19 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "search-utils"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "rnc-utils",
+ "serde",
+ "serde_json",
+ "simplelog",
+ "structopt",
+]
 
 [[package]]
 name = "semver"

@@ -11,5 +11,6 @@ members = [
   "rnc-utils",
   "rnc-test-utils",
   "split-sequences",
+  "search-utils",
   # "jseq",
 ]

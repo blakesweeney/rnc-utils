@@ -24,19 +24,20 @@ enum Subcommand {
         output: PathBuf,
     },
 
-    // IndexFiles {
-    //     #[structopt(parse(from_os_str))]
-    //     /// Filename of the raw json file, '-' means stdin.
-    //     filename: PathBuf,
+    IndexFiles {
+        #[structopt(parse(from_os_str))]
+        /// Filename of the raw json file, '-' means stdin.
+        filename: PathBuf,
 
-    //     /// Filename to store the index in.
-    //     #[structopt(parse(from_os_str))]
-    //     output: PathBuf,
-    // },
+        /// Filename to store the index in.
+        #[structopt(parse(from_os_str))]
+        output: PathBuf,
+    },
+
     /// Given a file where each line is an id to extract, extract all values for it.
     Lookup {
-        /// This will cause the program to emit a warning instead of fail if a requested key has no
-        /// data.
+        /// This will cause the program to emit a warning instead of fail if a requested
+        /// key has no data.
         #[structopt(short, long)]
         allow_missing: bool,
 
@@ -60,12 +61,6 @@ struct Opt {
     /// Set the logging option, more is more verbose.
     #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
     verbose: u32,
-
-    // #[structopt(short = "m", long = "max-dbs", default_value = "20")]
-    // max_dbs: u32,
-
-    // #[structopt(short = "s", long = "db-size", default_value = "20GB")]
-    // db_size: String,
 
     #[structopt(subcommand)]
     command: Subcommand,
@@ -95,12 +90,16 @@ fn main() -> anyhow::Result<()> {
             output,
         } => {
             let mut spec = store::Spec::new(&output);
-            // spec.set_max_dbs(opt.max_dbs);
-            // spec.set_human_db_size(&opt.db_size);
             spec.set_commit_size(commit_size);
             store::index(&spec, &data_type, &filename)?
-        }
-        // Subcommand::IndexFiles { filename, output } => store::index_files(&filename, &output),
+        },
+        Subcommand::IndexFiles {
+            filename,
+            output,
+        } => {
+            let spec = store::Spec::new(&output);
+            store::index_files(&spec, &filename)?
+        },
         Subcommand::Lookup {
             allow_missing,
             cache,
@@ -108,11 +107,9 @@ fn main() -> anyhow::Result<()> {
             output,
         } => {
             let mut spec = store::Spec::new(&cache);
-            // spec.set_max_dbs(opt.max_dbs);
-            // spec.set_human_db_size(&opt.db_size);
             spec.set_allow_missing(allow_missing);
             store::lookup(&spec, &filename, &output)?
-        }
+        },
     };
 
     Ok(())
