@@ -1105,11 +1105,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
+ "rnc-core",
  "rnc-utils",
  "serde",
  "serde_json",
  "simplelog",
  "structopt",
+ "thiserror",
 ]
 
 [[package]]

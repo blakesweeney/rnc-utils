@@ -7,12 +7,6 @@ use regex::Regex;
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Urs(u64);
 
-impl Urs {
-    pub fn to_string(&self) -> String {
-        format!("URS{:010X}", self.0)
-    }
-}
-
 impl FromStr for Urs {
     type Err = std::num::ParseIntError;
 
@@ -46,6 +40,14 @@ impl From<&Urs> for u64 {
 }
 
 impl Urs {
+    pub fn to_string(&self) -> String {
+        format!("URS{:010X}", self.0)
+    }
+
+    pub fn short_urs(&self) -> String {
+        format!("URS{:X}", self.0)
+    }
+
     pub fn looks_like_urs(urs: &str) -> bool {
         lazy_static! {
             static ref PATTERN: Regex = Regex::new(r"URS[0-9A-F]{10}$").unwrap();
@@ -84,6 +86,16 @@ mod tests {
         assert_eq!("URS0000C0472E".parse::<Urs>()?, Urs(12601134));
         assert_eq!("URS0000000001".parse::<Urs>()?, Urs(1));
         assert_eq!("URS00001EE391".parse::<Urs>()?, Urs(2024337));
+        Ok(())
+    }
+
+    #[test]
+    fn can_convert_string_to_short_urs() -> Result<(), Box<dyn Error>> {
+        assert_eq!("URS9".parse::<Urs>()?, Urs(9));
+        assert_eq!("URSA".parse::<Urs>()?, Urs(10));
+        assert_eq!("URSC0472E".parse::<Urs>()?, Urs(12601134));
+        assert_eq!("URS1".parse::<Urs>()?, Urs(1));
+        assert_eq!("URS1EE391".parse::<Urs>()?, Urs(2024337));
         Ok(())
     }
 
