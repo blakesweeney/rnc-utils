@@ -1,10 +1,16 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader},
-    path::{Path, PathBuf},
+    fs::File,
+    io::{
+        BufRead,
+        BufReader,
+    },
+    path::{
+        Path,
+        PathBuf,
+    },
     str,
     thread,
-    fs::File,
 };
 
 use serde_query::{
@@ -19,9 +25,18 @@ use serde_json::{
 
 use anyhow::Result;
 
-use crossbeam_channel::{Sender, unbounded};
+use crossbeam_channel::{
+    unbounded,
+    Sender,
+};
 
-use sled;
+use rocksdb::{
+    ColumnFamily,
+    ColumnFamilyDescriptor,
+    MergeOperands,
+    Options,
+    DB,
+};
 
 #[derive(DeserializeQuery)]
 struct DocId {
@@ -55,17 +70,61 @@ impl<'a> Spec<'a> {
     }
 }
 
-fn concatenate_merge(_key: &[u8], old_value: Option<&[u8]>, new_bytes: &[u8]) -> Option<Vec<u8>> {
-    let mut ret = old_value.map(|ov| ov.to_vec()).unwrap_or_else(|| vec![]);
-    ret.extend_from_slice(new_bytes);
-    Some(ret)
+fn concat_merge(
+    _new_key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &mut MergeOperands,
+) -> Option<Vec<u8>> {
+    let mut result: Vec<u8> = Vec::with_capacity(operands.size_hint().0);
+    existing_val.map(|v| {
+        for e in v {
+            result.push(*e)
+        }
+    });
+    for op in operands {
+        for e in op {
+            result.push(*e)
+        }
+    }
+    Some(result)
 }
 
 pub fn index(spec: &Spec, data_type: &str, filename: &Path) -> anyhow::Result<()> {
     let mut reader = rnc_utils::buf_reader(&filename)?;
-    let db: sled::Db = sled::open(spec.path)?;
-    let store: sled::Tree = db.open_tree(data_type)?;
-    store.set_merge_operator(concatenate_merge);
+
+    let mut db_opts = Options::default();
+    db_opts.create_if_missing(true);
+    db_opts.set_merge_operator("append operator", concat_merge, None);
+
+    let mut families: Vec<String> = Vec::new();
+    let mut store = match spec.path.exists() {
+        true => {
+            families.extend(DB::list_cf(&db_opts, spec.path)?);
+
+            match families.len() {
+                0 | 1 => {
+                    println!("BASIC OPEN");
+                    DB::open(&db_opts, spec.path)
+                },
+                _ => {
+                    println!("OPEN WITH CF");
+                    let descriptors = families.clone().into_iter().map(|name| {
+                        let mut cf_opts = Options::default();
+                        cf_opts.set_merge_operator("append operator", concat_merge, None);
+                        ColumnFamilyDescriptor::new(name, cf_opts)
+                    });
+                    DB::open_cf_descriptors(&db_opts, spec.path, descriptors)
+                },
+            }
+        },
+        false => DB::open(&db_opts, spec.path),
+    }?;
+
+    if !families.contains(&data_type.to_string()) {
+        store.create_cf(data_type, &db_opts)?;
+    }
+    let family = store.cf_handle(data_type).unwrap();
+
     let mut buf = String::new();
     loop {
         match reader.read_line(&mut buf)? {
@@ -73,20 +132,24 @@ pub fn index(spec: &Spec, data_type: &str, filename: &Path) -> anyhow::Result<()
             _ => {
                 let line = buf.replace("\\\\", "\\");
                 let id: DocId = serde_json::from_str::<Query<DocId>>(&line)?.into();
-                store.merge(id.id.as_bytes(), line.as_bytes())?;
+                store.merge_cf(&family, id.id.as_bytes(), line.as_bytes())?;
                 buf.clear();
-            }
+            },
         }
     }
 
     Ok(())
 }
 
+fn path_as_column_name(path: &Path) -> String {
+    path.file_stem().unwrap().to_str().unwrap().to_string()
+}
+
 fn send_file_lines(path: &Path, sender: Sender<(String, DocId, String)>) {
     let file = File::open(path).unwrap();
+    let data_type = path_as_column_name(&path);
     let mut reader = BufReader::new(file);
     let mut buf = String::new();
-    let data_type = path.file_stem().unwrap().to_str().unwrap().to_string();
     loop {
         match reader.read_line(&mut buf).unwrap() {
             0 => break,
@@ -95,7 +158,7 @@ fn send_file_lines(path: &Path, sender: Sender<(String, DocId, String)>) {
                 let id: DocId = serde_json::from_str::<Query<DocId>>(&line).unwrap().into();
                 sender.send((data_type.to_string(), id, line.to_string())).unwrap();
                 buf.clear();
-            }
+            },
         }
     }
 }
@@ -103,31 +166,70 @@ fn send_file_lines(path: &Path, sender: Sender<(String, DocId, String)>) {
 pub fn index_files(spec: &Spec, filename: &Path) -> anyhow::Result<()> {
     let reader = rnc_utils::buf_reader(&filename)?;
     let (json_sender, json_reciever) = unbounded();
+    let mut families: Vec<String> = Vec::new();
     for line in reader.lines() {
         let line = line?;
         let filename = line.trim_end();
         let path = PathBuf::from(filename);
+        families.push(path_as_column_name(&path));
         let sender = json_sender.clone();
         thread::spawn(move || send_file_lines(&path, sender));
     }
 
-    let db: sled::Db = sled::open(spec.path)?;
-    db.set_merge_operator(concatenate_merge);
+    let mut db_opts = Options::default();
+    db_opts.create_if_missing(true);
+    db_opts.set_merge_operator("append operator", concat_merge, None);
+
+    let store = match spec.path.exists() {
+        true => {
+            families.extend(DB::list_cf(&db_opts, spec.path)?);
+            families.sort();
+            families.dedup();
+
+            match families.len() {
+                0 | 1 => DB::open(&db_opts, spec.path),
+                _ => {
+                    let descriptors = families.clone().into_iter().map(|name| {
+                        let mut cf_opts = Options::default();
+                        cf_opts.set_merge_operator("append operator", concat_merge, None);
+                        ColumnFamilyDescriptor::new(name, cf_opts)
+                    });
+                    DB::open_cf_descriptors(&db_opts, spec.path, descriptors)
+                },
+            }
+        },
+        false => DB::open(&db_opts, spec.path),
+    }?;
+
+    let mut column_map: HashMap<String, &ColumnFamily> = HashMap::new();
+    for name in families {
+        column_map.insert(name.clone(), store.cf_handle(&name).unwrap());
+    }
+
     for (data_type, id, data) in json_reciever {
-        let store: sled::Tree = db.open_tree(data_type)?;
-        store.merge(id.id.as_bytes(), data.as_bytes())?;
+        let column = column_map[&data_type];
+        store.merge_cf(column, id.id.as_bytes(), data.as_bytes())?;
     }
 
     Ok(())
 }
 
 pub fn lookup(spec: &Spec, key_file: &Path, output: &Path) -> anyhow::Result<()> {
-    let db: sled::Db = sled::open(spec.path)?;
-    let names = db.tree_names();
-    let mut trees: Vec<(String, sled::Tree)> = Vec::with_capacity(names.len());
+    let mut cfs: Vec<(String, &ColumnFamily)> = Vec::new();
+    let mut db_opts = Options::default();
+    db_opts.set_merge_operator("append operator", concat_merge, None);
+    let names = DB::list_cf(&db_opts, spec.path)?;
+    let descriptors = names.clone().into_iter().map(|name| {
+        let mut cf_opts = Options::default();
+        cf_opts.set_merge_operator("append operator", concat_merge, None);
+        ColumnFamilyDescriptor::new(name, cf_opts)
+    });
+    let store = DB::open_cf_descriptors(&db_opts, spec.path, descriptors)?;
+
     for name in names {
-        let human = String::from_utf8(name.to_vec())?;
-        trees.push((human, db.open_tree(name)?));
+        if name != "default" {
+            cfs.push((name.to_string(), store.cf_handle(&name).unwrap()));
+        }
     }
 
     let mut writer = rnc_utils::buf_writer(&output)?;
@@ -143,10 +245,10 @@ pub fn lookup(spec: &Spec, key_file: &Path, output: &Path) -> anyhow::Result<()>
                 data.insert("id", serde_json::Value::String(trimmed.to_string()));
                 let mut seen = false;
                 let key = trimmed.as_bytes();
-                for (name, tree) in &trees {
+                for (name, cf) in &cfs {
                     let default = serde_json::Value::Array(Vec::new());
-                    let to_update = data.entry(&name).or_insert(default).as_array_mut().unwrap();
-                    match tree.get(key)? {
+                    let to_update = data.entry(name).or_insert(default).as_array_mut().unwrap();
+                    match store.get_pinned_cf(cf, &key)? {
                         None => (),
                         Some(v) => {
                             seen = true;

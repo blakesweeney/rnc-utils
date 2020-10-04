@@ -7,11 +7,12 @@ just some utilities that are too slow in python.
 ## kv
 
 This is a program to work as key-value store based off of
-[sled](https://github.com/spacejam/sled). This is meant to help with the
-precompute and search export steps. These parts involve processing data from a
-large join and processing the results. It is much faster to split the query
-apart as much as possible and then run index the results of each part. This set
-of commands is meant to deal with indexing and accessing the data.
+[rocksdb](https://github.com/rust-rocksdb/rust-rocksdb). This is meant to help
+with the precompute and search export steps. These parts involve processing
+data from a large join and processing the results. It is much faster to split
+the query apart as much as possible and then run index the results of each
+part. This set of commands is meant to deal with indexing and accessing the
+data.
 
 ### Usage
 
