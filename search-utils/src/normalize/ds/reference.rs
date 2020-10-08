@@ -46,6 +46,8 @@ impl FromIterator<Reference> for ReferenceVec {
         let mut value = ReferenceVec::default();
 
         for i in iter {
+            let authors = i.authors.split(", ").filter(|a| !a.is_empty()).map(|s| s.to_string());
+            value.authors.extend(authors);
             value.authors.insert(i.authors);
             value.journal.insert(i.journal);
             value.pub_title.insert(i.pub_title);

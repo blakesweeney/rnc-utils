@@ -16,12 +16,11 @@ use rnc_core::{
 use crate::normalize::utils;
 
 use crate::normalize::ds::{
-    accession::{
-        Accession,
-        AccessionVec,
-    },
     basic::Basic,
-    cross_reference::CrossReference,
+    cross_reference::{
+        AccessionVec,
+        CrossReference,
+    },
     crs::{
         Crs,
         CrsVec,
@@ -62,7 +61,6 @@ use crate::normalize::ds::{
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Raw {
     id: String,
-    accessions: Vec<Accession>,
     base: Vec<Basic>,
     cross_references: Vec<CrossReference>,
     crs: Vec<Crs>,
@@ -76,6 +74,56 @@ pub struct Raw {
     references: Vec<Reference>,
     rfam_hits: Vec<RfamHit>,
 }
+
+/*
+{
+  "interacting_proteins": [],
+  "base": [
+    {
+      "id": "URS0000614226_291828",
+      "length": 181,
+      "md5": "1b40575dabf9994947faba61876fc1a6",
+      "urs": "URS0000614226"
+    }
+  ],
+  "id": "URS0000614226_291828",
+  "crs": [],
+  "cross_references": [],
+  "qa_status": [
+    {
+      "has_issue": true,
+      "id": "URS0000614226_291828",
+      "incomplete_sequence": true,
+      "missing_rfam_match": false,
+      "possible_contamination": false
+    }
+  ],
+  "go_annotations": [],
+  "feedback": [],
+  "interacting_rnas": [],
+  "references": [],
+  "precompute": [
+    {
+      "databases": "ENA",
+      "description": "uncultured Parvibaculum sp. partial 16S ribosomal RNA",
+      "has_coordinates": false,
+      "id": "URS0000614226_291828",
+      "rna_type": "rRNA",
+      "so_rna_type": "SO:0000650"
+    }
+  ],
+  "r2dt": [],
+  "rfam_hits": [
+    {
+      "id": "URS0000614226_291828",
+      "rfam_clans": "CL00111",
+      "rfam_family_names": "SSU_rRNA_bacteria",
+      "rfam_ids": "RF00177",
+      "urs": "URS0000614226"
+    }
+  ]
+}
+*/
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Normalized {
@@ -96,7 +144,7 @@ pub struct Normalized {
     // #[serde(flatten)]
     // dates: Dates,
     qa_status: QaStatus,
-    secondary_structure: R2dt,
+    secondary_structure: Option<R2dt>,
 
     accessions: AccessionVec,
     crs: CrsVec,
@@ -132,9 +180,9 @@ impl Normalized {
         let basic = utils::expect_single(&raw.base, "base")?;
         let precompute = utils::expect_single(&raw.precompute, "precompute")?;
         let qa_status = utils::expect_single(&raw.qa_status, "qa_status")?;
-        let secondary_structure = utils::expect_single(&raw.r2dt, "r2dt")?;
         let so_rna_type_tree = so_info[precompute.so_rna_type()].clone();
         let pre_summary = PrecomputeSummary::from(precompute);
+        let secondary_structure = utils::maybe_single(&raw.r2dt, "r2dt")?;
 
         Ok(Self {
             urs_taxid: raw.id.clone(),
@@ -150,7 +198,7 @@ impl Normalized {
             qa_status,
             secondary_structure,
 
-            accessions: AccessionVec::from_iter(raw.accessions.clone()),
+            accessions: AccessionVec::from_iter(raw.cross_references.clone()),
             crs: CrsVec::from_iter(raw.crs.clone()),
             feedback: FeedbackVec::from_iter(raw.feedback.clone()),
             go_annotations: GoAnnotationVec::from_iter(raw.go_annotations.clone()),

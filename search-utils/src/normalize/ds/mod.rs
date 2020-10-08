@@ -1,4 +1,3 @@
-pub mod accession;
 pub mod basic;
 pub mod cross_reference;
 pub mod crs;

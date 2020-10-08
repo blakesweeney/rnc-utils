@@ -10,24 +10,24 @@ use serde::{
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RfamHit {
-    rfam_id: String,
-    rfam_family_name: String,
-    rfam_clan: Option<String>,
+    rfam_ids: String,
+    rfam_family_names: String,
+    rfam_clans: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RfamHitVec {
-    rfam_id: HashSet<String>,
-    rfam_family_name: HashSet<String>,
-    rfam_clan: HashSet<String>,
+    rfam_ids: HashSet<String>,
+    rfam_family_names: HashSet<String>,
+    rfam_clans: HashSet<String>,
 }
 
 impl Default for RfamHitVec {
     fn default() -> Self {
         Self {
-            rfam_id: HashSet::new(),
-            rfam_family_name: HashSet::new(),
-            rfam_clan: HashSet::new(),
+            rfam_ids: HashSet::new(),
+            rfam_family_names: HashSet::new(),
+            rfam_clans: HashSet::new(),
         }
     }
 }
@@ -37,9 +37,9 @@ impl FromIterator<RfamHit> for RfamHitVec {
         let mut value = RfamHitVec::default();
 
         for i in iter {
-            value.rfam_id.insert(i.rfam_id);
-            value.rfam_family_name.insert(i.rfam_family_name);
-            value.rfam_id.extend(i.rfam_clan);
+            value.rfam_ids.insert(i.rfam_ids);
+            value.rfam_family_names.insert(i.rfam_family_names);
+            value.rfam_clans.extend(i.rfam_clans);
         }
 
         value

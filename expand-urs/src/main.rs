@@ -66,6 +66,7 @@ fn main() -> Result<()> {
                                 serde_json::Value::String(urs_taxid.to_string()),
                             );
                             serde_json::to_writer(&mut output, &m)?;
+                            writeln!(&mut output)?;
                         }
                     }
                 }

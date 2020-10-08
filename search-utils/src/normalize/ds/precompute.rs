@@ -3,12 +3,16 @@ use serde::{
     Serialize,
 };
 
+use serde_with::CommaSeparator;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Precompute {
     description: String,
     rna_type: String,
     has_coordinates: bool,
     so_rna_type: String,
+
+    #[serde(with = "serde_with::rust::StringWithSeparator::<CommaSeparator>")]
     databases: Vec<String>,
 }
 
@@ -16,7 +20,7 @@ pub struct Precompute {
 pub struct PrecomputeSummary {
     description: String,
     rna_type: String,
-    has_coordinates: String,
+    has_coordinates: bool,
     databases: Vec<String>,
 }
 
@@ -28,15 +32,10 @@ impl Precompute {
 
 impl From<Precompute> for PrecomputeSummary {
     fn from(pre: Precompute) -> PrecomputeSummary {
-        let has_coordinates = match pre.has_coordinates {
-            true => String::from("True"),
-            false => String::from("False"),
-        };
-
         Self {
             description: pre.description,
-            rna_type: pre.rna_type,
-            has_coordinates,
+            rna_type: pre.rna_type.replace("_", " "),
+            has_coordinates: pre.has_coordinates,
             databases: pre.databases,
         }
     }

@@ -19,3 +19,14 @@ pub fn expect_single<T: Clone>(values: &[T], name: &str) -> Result<T, Error> {
         _ => Err(Error::TooMany(name.to_string())),
     }
 }
+
+pub fn maybe_single<T: Clone>(values: &[T], name: &str) -> Result<Option<T>, Error> {
+    match values.len() {
+        0 => Ok(None),
+        1 => {
+            let val = values.first().cloned().unwrap();
+            Ok(Some(val))
+        },
+        _ => Err(Error::TooMany(name.to_string())),
+    }
+}
